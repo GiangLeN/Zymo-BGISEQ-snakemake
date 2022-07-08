@@ -1,22 +1,16 @@
-# Reanalyse BGISEQ using snakemake
+# Analyse ZymoBIOMICS Microbial community using different sequencing methods
 
-This tutorial will cover how to reproduce research
-
-The html tutorial can be accessed via this link.
-
+The tutorial use public data to analyse different sequencing methods. 
+The html version can be accessed via this link.
 https://gianglen.github.io/Zymo-Mock-sequencing/
 
-Aim: To see which DNA extaction method  
+Aim: To see which DNA sequencing method is efficient for metagenomic analysis  
 
 Topics:
-* Public data
-* Environment
-* Snakemake
-** Benchmark
-** Cloud
-** Configs
-* Assembling
+* Search for publicly available data
+* Set up environment to run the analysis
+* Use snakemake to create analysis pipeline
 * Reconstruction of genomes
-* Report
-* Reference
+* How to create a report
+* References
 
