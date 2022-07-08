@@ -2,8 +2,9 @@
 
 This tutorial will cover how to reproduce research
 
-The tutorial can be accessed via
-https://gianglen.github.io/Zymo-BGISEQ-snakemake/
+The html tutorial can be accessed via this link.
+
+https://gianglen.github.io/Zymo-Mock-sequencing/
 
 Aim: To see which DNA extaction method  
 
