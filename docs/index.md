@@ -74,7 +74,7 @@ We can create an environment with specify name and specific tools/programs as fo
 Create an environment to download SRA files from NCBI.
 
 ```
-# Create an environment called ncbi_dl from 
+# Create an environment called ncbi_dl from the
 # channel bioconda with the program sra-tools
 conda create --name ncbi_dl -c bioconda sra-tools
 
@@ -102,15 +102,14 @@ conda deactivate
 ## 2. Workflow for downloading data from NCBI
 
 The workflow needs to be understood before setting up the pipeline.
-Here, we will download the data from NCBI and then split the file into forward and reverse reads. Finally, these fastq pairs are compressed to save disk space.
+Here, we will download the data from NCBI and then split the file into forward and reverse reads.
 
 Let's try to download the first experimental run from NCBI  
 `prefetch ERR4097239`
 
-Once completed, we can see a folder called `ERR4097239` with the file `ERR4097239.sra` inside.
+Once completed, we can see a folder called `ERR4097239` with the file `ERR4097239.sra` inside. Split file into forward and reverse reads.
 
 ```
-# Split file into forward and reverse reads
 fasterq-dump --split-files ERR4097239/ERR4097239.sra
 ```
 Congratulation, you have successfully downloaded and split the first sample.
@@ -157,9 +156,9 @@ rule download:
 ```
 The output tells Snakemake that we are expecting `ERR4097239/ERR4097239.sra` as the outcome.
 
-You also might have noticed that we are no longer in the `ncbi_dl` environment. This means sra-tools is not installed in here. We could re-install it here. However, multiple tools in the same environment might lead to compatibility conflict. To avoid this, we will create a yaml file contains program information which tie in to the rule.
+You also might have noticed that we are no longer in the `ncbi_dl` environment. This means sra-tools is not installed here. To avoid compatibility conflict caused by multiple tools in the same environment, we will create a yaml file. This file contains program information which tie in to the rule.
 
-The file `envs/sra-tools.yaml`
+The file `envs/sra-tools.yaml`:
 
 ```
 name: sra-tools
@@ -168,7 +167,7 @@ channels:
 dependencies:
  - sra-tools
 ```
-Under `shell:` is where you type in the commands/scripts.
+Under `shell:` is where you type in the commands/scripts. In this case its `prefetch <SRA_name>`.
 
 Above the rule `download` we need to have rule `all` to specify the final outcome.
 
@@ -177,7 +176,7 @@ rule all:
     input:
         "ERR4097108/ERR4097108.sra"
 ```
-Check below to see what the snakefile looks like.
+Check below to see what the Snakefile looks like.
 
 <details>
   <summary>Snakefile</summary>
@@ -211,7 +210,7 @@ Snakemake will build the environment the first time it runs.
 
 ### Extract forward and reverse reads
 
-Add the second rule to split the sra file into forward and reverse files. The output from rule `donwload` is used as the input for the rule `split_raw`.
+Add the second rule to split the sra file into forward and reverse files. The output from rule `donwload` is used as the input for the rule `split_raw`. We also specify that, we are expecting files with multiple extensions.
 
 ```
 rule split_raw:
@@ -227,7 +226,7 @@ rule split_raw:
         """
 ```
 
-Update rule `all` to the following:
+Update rule `all` to the following as we want the split files as the final result.
 
 ```
 rule all:
@@ -238,6 +237,7 @@ Snakemake looks at the final output and works backward to identify the input req
 
 <details>
   <summary>Snakefile</summary>
+<p>
 
 ```
 rule all:
@@ -266,11 +266,13 @@ rule split_raw:
         fasterq-dump --split-files {input}
         """
 ```
+</p>
 </details>
+
 
 ### Compress files
 
-Create new rule to compress reads
+Create new rule to compress reads to save space.
 
 ```
 rule compress:
@@ -294,7 +296,6 @@ rule all:
 
 <details>
   <summary>Snakefile</summary>
-
 
 ```
 rule all:
@@ -338,6 +339,10 @@ rule compress:
 
 ### Update snakemake to process multiple files
 
+Now that we have the basic Snakefile working, we need to update it so that it can process multiple SRA samples. The input is a python list.
+```
+SRA = ["ERR4097108", "ERR4097109"]
+```
 
 ```
 SRA = ["ERR4097108", "ERR4097109"]
@@ -353,7 +358,7 @@ rule download:
         "envs/sra-tools.yaml"
     shell:
         """
-        prefetch {wildcards.sra}
+        prefetch {wildcards.sra} 
         """
 
 rule split_raw:
