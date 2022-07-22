@@ -1735,24 +1735,40 @@ the program sra-tools</p>
 <summary>
 Click to expand!
 </summary>
-<pre><code>## Heading
-1. A numbered
-2. list
-   * With some
-   * Sub bullets</code></pre>
-</details>
-<p>It is also possible to install conda environment from yaml files in
-the <code>envs</code> folder</p>
-<pre><code># Create environment from file
-conda env create -f envs/sra-tools.yaml
+<pre><code>    ## Heading
+    1. A numbered
+    2. list
+       * With some
+       * Sub bullets
+     
+  ```
+  
+  `conda blah blah`
+  
+  
+  ## Heading
+  1. A numbered
+  2. list
+     * With some
+     * Sub bullets
+&lt;/details&gt;
 
-# Activate the environment
-conda activate sra-tools
 
-# Deactivate the environment
-conda deactivate</code></pre>
+It is also possible to install conda environment from yaml files in the `envs` folder
+</code></pre>
 </div>
 </div>
+<div id="create-environment-from-file" class="section level1">
+<h1>Create environment from file</h1>
+<p>conda env create -f envs/sra-tools.yaml</p>
+</div>
+<div id="activate-the-environment" class="section level1">
+<h1>Activate the environment</h1>
+<p>conda activate sra-tools</p>
+</div>
+<div id="deactivate-the-environment" class="section level1">
+<h1>Deactivate the environment</h1>
+<p>conda deactivate ```</p>
 <div id="pipeline-with-snakemake" class="section level2">
 <h2>2. Pipeline with Snakemake</h2>
 <div id="workflow-for-downloading-data-from-ncbi" class="section level3">
@@ -1761,11 +1777,11 @@ conda deactivate</code></pre>
 Here, we will download the data from NCBI and then split the file into
 forward and reverse reads.</p>
 <p>Let’s try to download the first experimental run from NCBI</p>
-<pre><code>prefetch ERR4097239</code></pre>
+<p>prefetch ERR4097239</p>
 <p>Once completed, we can see a folder called <code>ERR4097239</code>
 with the file <code>ERR4097239.sra</code> inside. Split file into
 forward and reverse reads.</p>
-<pre><code>fasterq-dump --split-files ERR4097239/ERR4097239.sra</code></pre>
+<p>fasterq-dump –split-files ERR4097239/ERR4097239.sra</p>
 <p>Congratulation, you have successfully downloaded and split the first
 sample.</p>
 </div>
@@ -1774,33 +1790,21 @@ sample.</p>
 <p>For multiple files processing, it’s much better to use Snakemake.
 Reproducible. Everything is treated the same way.</p>
 <p>Build the Snakemake’s environment using mamba.</p>
-<pre><code># Install snakemake via mamba
-conda create --name snakemake -c conda-forge mamba
-
-# Activate environment
-conda activate snakemake
-
-# Use mamba to install snakemake
-# This tutorial use snakemake version 7.8.5
-mamba install -c conda-forge -c bioconda snakemake=7.8.5
-
-# Check snakemake version
-snakemake --version</code></pre>
+<p># Install snakemake via mamba conda create –name snakemake -c
+conda-forge mamba</p>
+<p># Activate environment conda activate snakemake</p>
+<p># Use mamba to install snakemake # This tutorial use snakemake
+version 7.8.5 mamba install -c conda-forge -c bioconda
+snakemake=7.8.5</p>
+<p># Check snakemake version snakemake –version</p>
 </div>
 <div id="download-sra-data-using-snakemake" class="section level3">
 <h3>Download SRA data using Snakemake</h3>
 <p>Open your favorite editor and create a new file called
 <code>Snakefile</code>.</p>
 <p>Creating the first rule to download the next SRA file</p>
-<pre><code>rule download:
-    output:
-        &quot;ERR4097239/ERR4097239.sra&quot; 
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        prefetch ERR4097239
-        &quot;&quot;&quot;</code></pre>
+<p>rule download: output: “ERR4097239/ERR4097239.sra” conda:
+“envs/sra-tools.yaml” shell: ““” prefetch ERR4097239 ““”</p>
 <p>The output tells Snakemake that we are expecting
 <code>ERR4097239/ERR4097239.sra</code> as the outcome.</p>
 <p>You might have noticed that we are no longer in the
@@ -1810,33 +1814,17 @@ in the same environment, we will create a new yaml file. This file
 contains program information which ties into the rule.</p>
 <p>Create a file called <code>sra-tools.yaml</code> and place it in the
 <code>envs</code> directory:</p>
-<pre><code>name: sra-tools
-channels:
- - bioconda
-dependencies:
- - sra-tools</code></pre>
+<p>name: sra-tools channels: - bioconda dependencies: - sra-tools</p>
 <p>Under <code>shell:</code> is where you type in the commands/scripts.
 In this case its</p>
-<pre><code>prefetch &lt;SRA_name&gt;</code></pre>
+<p>prefetch <SRA_name></p>
 <p>Above the rule <code>download</code> we need to have rule
 <code>all</code> to specify the <em>final</em> outcome.</p>
-<pre><code>rule all:
-    input:
-        &quot;ERR4097108/ERR4097108.sra&quot;</code></pre>
+<p>rule all: input: “ERR4097108/ERR4097108.sra”</p>
 <p>Save your <code>Snakefile</code> and it should look like this:</p>
-<pre><code>rule all:
-    input:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-
-rule download:
-    output:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        prefetch ERR4097108
-        &quot;&quot;&quot;</code></pre>
+<p>rule all: input: “ERR4097108/ERR4097108.sra”</p>
+<p>rule download: output: “ERR4097108/ERR4097108.sra” conda:
+“envs/sra-tools.yaml” shell: ““” prefetch ERR4097108 ““”</p>
 <p>We are telling snakemake to use one core and use conda to create
 environment for the rules. Snakemake will build the environment the
 first time it runs.</p>
@@ -1852,51 +1840,26 @@ first time it runs.</p>
 files. The output from rule <code>donwload</code> is used as the input
 for the rule <code>split_raw</code>. We also expect files with multiple
 extensions. This is specified by the <code>multiext()</code>.</p>
-<pre><code>rule split_raw:
-    input:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-    output:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        fasterq-dump --split-files ERR4097108
-        &quot;&quot;&quot;</code></pre>
+<p>rule split_raw: input: “ERR4097108/ERR4097108.sra” output:
+multiext(“ERR4097108.sra”, “_1.fastq”, “_2.fastq”) conda:
+“envs/sra-tools.yaml” shell: ““” fasterq-dump –split-files ERR4097108
+““”</p>
 <p>Update rule <code>all</code> to the following as we want the split
 files as the final result.</p>
-<pre><code>rule all:
-    input:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)</code></pre>
+<p>rule all: input: multiext(“ERR4097108.sra”, “_1.fastq”,
+“_2.fastq”)</p>
 <p>Snakemake looks at the final output and works backward to identify
 the input required for each rule. This is why you do not need to keep
 <code>&quot;ERR4097108/ERR4097108.sra&quot;</code> in the rule
 <code>all</code>.</p>
-<pre><code>rule all:
-    input:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-
-rule download:
-    output:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        prefetch ERR4097108
-        &quot;&quot;&quot;
-
-rule split_raw:
-    input:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-    output:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        fasterq-dump --split-files {input}
-        &quot;&quot;&quot;</code></pre>
+<p>rule all: input: multiext(“ERR4097108.sra”, “_1.fastq”,
+“_2.fastq”)</p>
+<p>rule download: output: “ERR4097108/ERR4097108.sra” conda:
+“envs/sra-tools.yaml” shell: ““” prefetch ERR4097108 ““”</p>
+<p>rule split_raw: input: “ERR4097108/ERR4097108.sra” output:
+multiext(“ERR4097108.sra”, “_1.fastq”, “_2.fastq”) conda:
+“envs/sra-tools.yaml” shell: ““” fasterq-dump –split-files {input}
+““”</p>
 </div>
 <div id="compress-files" class="section level3">
 <h3>Compress files</h3>
@@ -1904,55 +1867,24 @@ rule split_raw:
 output from <code>split_raw</code> is used as the input for the
 <code>compress</code> rule. For the output, we want the compressed
 files.</p>
-<pre><code>rule compress:
-    input:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    output:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
-    shell:
-        &quot;&quot;&quot;
-        gzip {input}
-        &quot;&quot;&quot;</code></pre>
+<p>rule compress: input: multiext(“ERR4097108.sra”, “_1.fastq”,
+“_2.fastq”) output: multiext(“ERR4097108.sra”, “_1.fastq.gz”,
+“_2.fastq.gz”) shell: ““” gzip {input} ““”</p>
 <p>Update rule <code>all</code> to the following:</p>
-<pre><code>rule all:
-    input:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)</code></pre>
+<p>rule all: input: multiext(“ERR4097108.sra”, “_1.fastq.gz”,
+“_2.fastq.gz”)</p>
 <p>This is how the Snakefile should look like</p>
-<pre><code>rule all:
-    input:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
-
-rule download:
-    output:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        prefetch ERR4097108
-        &quot;&quot;&quot;
-
-rule split_raw:
-    input:
-        &quot;ERR4097108/ERR4097108.sra&quot;
-    output:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        fasterq-dump --split-files {input}
-        &quot;&quot;&quot;
-
-rule compress:
-    input:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    output:
-        multiext(&quot;ERR4097108.sra&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
-    shell:
-        &quot;&quot;&quot;
-        gzip {input}
-        &quot;&quot;&quot;</code></pre>
+<p>rule all: input: multiext(“ERR4097108.sra”, “_1.fastq.gz”,
+“_2.fastq.gz”)</p>
+<p>rule download: output: “ERR4097108/ERR4097108.sra” conda:
+“envs/sra-tools.yaml” shell: ““” prefetch ERR4097108 ““”</p>
+<p>rule split_raw: input: “ERR4097108/ERR4097108.sra” output:
+multiext(“ERR4097108.sra”, “_1.fastq”, “_2.fastq”) conda:
+“envs/sra-tools.yaml” shell: ““” fasterq-dump –split-files {input}
+““”</p>
+<p>rule compress: input: multiext(“ERR4097108.sra”, “_1.fastq”,
+“_2.fastq”) output: multiext(“ERR4097108.sra”, “_1.fastq.gz”,
+“_2.fastq.gz”) shell: ““” gzip {input} ““”</p>
 </div>
 <div id="update-snakemake-to-process-multiple-files" class="section level3">
 <h3>Update Snakemake to process multiple files</h3>
@@ -1960,7 +1892,7 @@ rule compress:
 wildcards. The input is a python list, where each value will be
 processed one by one.</p>
 <p>Here we will create a list of two SRA samples.</p>
-<pre><code>SRA = [&quot;ERR4097108&quot;, &quot;ERR4097109&quot;]</code></pre>
+<p>SRA = [“ERR4097108”, “ERR4097109”]</p>
 <p>For rule <code>all</code>, we want the final output to be
 <code>{sra}.sra_1.fastq.gz</code> and <code>{sra}.sra_2.fastq.gz</code>.
 The SRA name is replaced with <code>{sra}</code>, where its value is
@@ -1973,15 +1905,8 @@ looking for 4 files as the final outcome:</p>
 <li>ERR4097109.sra_2.fastq.gz</li>
 </ul>
 <p>The new rule <code>download</code>:</p>
-<pre><code>rule download:
-    output:
-        temp(&quot;{sra}/{sra}.sra&quot;)
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        prefetch {wildcards.sra} 
-        &quot;&quot;&quot;</code></pre>
+<p>rule download: output: temp(“{sra}/{sra}.sra”) conda:
+“envs/sra-tools.yaml” shell: ““” prefetch {wildcards.sra} ““”</p>
 <p>For the <code>output</code>. We replace the SRA name with
 <code>{sra}</code>. The <code>temp()</code> outside indicates temporary
 file. Snakemake will remove these files once the pipeline is
@@ -1989,43 +1914,18 @@ completed.</p>
 <p>We need to specify that we are running the <code>wildcards.sra</code>
 for the <code>prefetch</code> command.</p>
 <p>Replace the SRA name with <code>{sra}</code> for the other rules.</p>
-<pre><code>SRA = [&quot;ERR4097108&quot;, &quot;ERR4097109&quot;]
-
-rule all:
-    input:
-        expand([&quot;{sra}.sra_1.fastq.gz&quot;, &quot;{sra}.sra_2.fastq.gz&quot;], sra = SRA)
-
-rule download:
-    output:
-        temp(&quot;{sra}/{sra}.sra&quot;)
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        prefetch {wildcards.sra} 
-        &quot;&quot;&quot;
-
-rule split_raw:
-    input:
-        &quot;{sra}/{sra}.sra&quot;
-    output:
-        multiext(&quot;{sra}.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    conda:
-        &quot;envs/sra-tools.yaml&quot;
-    shell:
-        &quot;&quot;&quot;
-        fasterq-dump --split-files {input}
-        &quot;&quot;&quot;
-
-rule compress:
-    input:
-        multiext(&quot;{sra}.sra&quot;, &quot;_1.fastq&quot;, &quot;_2.fastq&quot;)
-    output:
-        multiext(&quot;{sra}.sra&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
-    shell:
-        &quot;&quot;&quot;
-        gzip {input}
-        &quot;&quot;&quot;</code></pre>
+<p>SRA = [“ERR4097108”, “ERR4097109”]</p>
+<p>rule all: input: expand([“{sra}.sra_1.fastq.gz”,
+“{sra}.sra_2.fastq.gz”], sra = SRA)</p>
+<p>rule download: output: temp(“{sra}/{sra}.sra”) conda:
+“envs/sra-tools.yaml” shell: ““” prefetch {wildcards.sra} ““”</p>
+<p>rule split_raw: input: “{sra}/{sra}.sra” output:
+multiext(“{sra}.sra”, “_1.fastq”, “_2.fastq”) conda:
+“envs/sra-tools.yaml” shell: ““” fasterq-dump –split-files {input}
+““”</p>
+<p>rule compress: input: multiext(“{sra}.sra”, “_1.fastq”, “_2.fastq”)
+output: multiext(“{sra}.sra”, “_1.fastq.gz”, “_2.fastq.gz”) shell: ““”
+gzip {input} ““”</p>
 <p>Run Snakemake with two cores and <code>-r</code> for reason and
 <code>-p</code> for print command.</p>
 <p><code>snakemake --cores 2 --use-conda -r -p</code></p>
@@ -2039,21 +1939,15 @@ multiple files. Try to download other SRA samples for analysis</p>
 </div>
 <div id="repository-tree-structure" class="section level2">
 <h2>Repository tree structure</h2>
-<pre><code>Zymo-Mock-sequencing/
-├── LICENSE
-├── README.md
-├── Snakefile
-├── docs
-│   ├── img
-│   │   └── snakemake_st.png
-│   └── index.md
-└── envs
-    └── sra-tools.yaml # To download from NCBI</code></pre>
+<p>Zymo-Mock-sequencing/ ├── LICENSE ├── README.md ├── Snakefile ├──
+docs │ ├── img │ │ └── snakemake_st.png │ └── index.md └── envs └──
+sra-tools.yaml # To download from NCBI</p>
 <p>.condarc -default (first)</p>
 <p>conda config –set channel_priority flexible</p>
 <p>install packages on a new environment instead of the default base
 environment. This way you can avoid package conflicts and maintain a
 clean base environment.</p>
+</div>
 </div>
 
 
