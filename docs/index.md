@@ -119,43 +119,19 @@ Activate the environment
 
 `conda activate sra-tools`
 
+To return to your previous environment, deactivate conda
+
+`conda deactivate`
 
 <details>
-  <summary>Click to expand!</summary>
+  <summary>Conda with yaml</summary>
 
-
-    ```
-      ## Heading
-      1. A numbered
-      2. list
-         * With some
-         * Sub bullets
-       
-    ```
+    It is also possible to install conda environment from yaml files in the `envs` folder
     
-    `conda blah blah`
+    `conda env create -f envs/sra-tools.yaml`
     
-    
-    ## Heading
-    1. A numbered
-    2. list
-       * With some
-       * Sub bullets
 </details>
 
-
-It is also possible to install conda environment from yaml files in the `envs` folder
-
-```
-# Create environment from file
-conda env create -f envs/sra-tools.yaml
-
-# Activate the environment
-conda activate sra-tools
-
-# Deactivate the environment
-conda deactivate
-```
 
 ## 2. Pipeline with Snakemake
 
@@ -163,54 +139,69 @@ conda deactivate
 
 The workflow needs to be understood before setting up the pipeline. Here, we will download the data from NCBI and then split the file into forward and reverse reads.
 
-Let's try to download the first experimental run from NCBI
+Let's try to download the first experimental run from NCBI by activating the environment we created earlier.
 
-    prefetch ERR4097239
+```
+# Acivate the environment we created earlier
+conda activate sra-tools
 
-Once completed, we can see a folder called `ERR4097239` with the file `ERR4097239.sra` inside. Split file into forward and reverse reads.
+# Download the SRA
+prefetch ERR4097239
 
-    fasterq-dump --split-files ERR4097239/ERR4097239.sra
+```
+
+Once completed, we can see a folder called `ERR4097239` with the file `ERR4097239.sra` inside.
+Split file into forward and reverse reads.
+
+`fasterq-dump --split-files ERR4097239/ERR4097239.sra`
+
 
 Congratulation, you have successfully downloaded and split the first sample.
 
 ### 2.2 Setup Snakemake
 
-For multiple files processing, it's much better to use Snakemake. Reproducible. Everything is treated the same way.
+For multiple files processing, it's much better to use Snakemake.
+Reproducible.
+Everything is treated the same way.
 
 Build the Snakemake's environment using mamba.
 
-    # Install snakemake via mamba
-    conda create --name snakemake -c conda-forge mamba
+```
+# Install snakemake via mamba
+conda create --name snakemake -c conda-forge mamba
 
-    # Activate environment
-    conda activate snakemake
+# Activate environment
+conda activate snakemake
 
-    # Use mamba to install snakemake
-    # This tutorial use snakemake version 7.8.5
-    mamba install -c conda-forge -c bioconda snakemake=7.8.5
+# Use mamba to install snakemake
+# This tutorial use snakemake version 7.8.5
+mamba install -c conda-forge -c bioconda snakemake=7.8.5
 
-    # Check snakemake version
-    snakemake --version
+# Check snakemake version
+snakemake --version
+```
 
-### Download SRA data using Snakemake {#download-sra-data-using-snakemake}
+### 2.3 Create rule for download SRA
 
 Open your favorite editor and create a new file called `Snakefile`.
 
 Creating the first rule to download the next SRA file
 
-    rule download:
-        output:
-            "ERR4097239/ERR4097239.sra" 
-        conda:
-            "envs/sra-tools.yaml"
-        shell:
-            """
-            prefetch ERR4097239
-            """
+```
+rule download:
+    output:
+        "ERR4097239/ERR4097239.sra" 
+    conda:
+        "envs/sra-tools.yaml"
+    shell:
+        """
+        prefetch ERR4097239
+        """
+```
 
 The output tells Snakemake that we are expecting `ERR4097239/ERR4097239.sra` as the outcome.
 
-You might have noticed that we are no longer in the `sra-tools` environment. This means sra-tools is not installed here. To avoid compatibility conflict caused by multiple tools in the same environment, we will create a new yaml file. This file contains program information which ties into the rule.
+You might have noticed that we are no longer in the `sra-tools` environment. This means sra-tools is not installed here. To avoid compatibility conflict caused by multiple tools in the same environment, we will create a new yaml file. This file contains information of programs for the rule.
 
 Create a file called `sra-tools.yaml` and place it in the `envs` directory:
 
@@ -222,29 +213,39 @@ Create a file called `sra-tools.yaml` and place it in the `envs` directory:
 
 Under `shell:` is where you type in the commands/scripts. In this case its
 
-    prefetch <SRA_name>
+`prefetch <SRA_name>`
 
 Above the rule `download` we need to have rule `all` to specify the *final* outcome.
 
-    rule all:
-        input:
-            "ERR4097108/ERR4097108.sra"
+```
+rule all:
+    input:
+        "ERR4097108/ERR4097108.sra"
+```
 
-Save your `Snakefile` and it should look like this:
+Save your `Snakefile`.
 
-    rule all:
-        input:
-            "ERR4097108/ERR4097108.sra"
+<details>
+    <summary>Snakefile</summary>
+        
+        rule all:
+            input:
+                "ERR4097108/ERR4097108.sra"
 
-    rule download:
-        output:
-            "ERR4097108/ERR4097108.sra"
-        conda:
-            "envs/sra-tools.yaml"
-        shell:
-            """
-            prefetch ERR4097108
-            """
+        rule download:
+            output:
+                "ERR4097108/ERR4097108.sra"
+            conda:
+                "envs/sra-tools.yaml"
+            shell:
+                """
+                prefetch ERR4097108
+                """
+
+</details>
+
+
+
 
 We are telling snakemake to use one core and use conda to create environment for the rules. Snakemake will build the environment the first time it runs.
 
