@@ -45,36 +45,22 @@ It is possible to view this documents locally or online at <https://gianglen.git
 
 > :warning: **Large analysis**: Will consume huge amount of disk space and computational power.
 
-## Contents
-
-### [1. Prepping guides](#1-prepping-guides)
-
--   [Data of interest](#sra-databases-of-zymobiomics)
-    -   [BGISEQ](#bgiseq)
--   [Conda environments](#conda-environments)
-
-### [2. Download SRA with Snakemake](#3-pipeline-with-snakemake)
-
--   [Download workflow]()
--   [Install Snakemake](#install-snakemake)
--   [Download SRA data using Snakemake](#download-sra-data-using-snakemake)
--   [Split sra file](#extract-forward-and-reverse-reads)
--   [Compress files to save space](#compress-files)
--   [Update Snakemake for multiple SRAs](#update-snakemake-to-process-multiple-files)
 
 ## 1. Prepping guides
 
-### SRA databases of zymoBIOMICS {#sra-databases-of-zymobiomics}
+### 1.1 zymoBIOMICS data on NCBI
 
-The SRA contains many databases from different projects. We are only interested in the zymoBIOMIC sequencing. It is possible to search for the data via Google Scholar or from the SRA webpage.
-
+The Sequence Read Archive (SRA) contains many sequencing databases from different projects.
+Similar to their aims, we also hope to be able to reproduce the results and discover new finding from data analysis.
 Here we are looking at research projects that sequenced the zymoBIOMIC Mock community.
 
 The list of SRA files that are used for the analysis can be found in the `sra_files` directory.
 
-#### BGISEQ {#bgiseq}
+#### 1.1.1 BGISEQ
 
 Name, looks at different extraction methods for BGI sequencing.
+Five different extraction methods were tested.
+
 
 | SampleID   | SRA        | Protocol |
 |------------|------------|----------|
@@ -115,30 +101,49 @@ Name, looks at different extraction methods for BGI sequencing.
 | D6300-4-24 | ERR4097171 | ZYMO     |
 | D6300-6-19 | ERR4097175 | ZYMO     |
 
-### Conda environments {#conda-environments}
 
-We can create an environment with specific tools/programs as follows:
+### 1.2 Conda environments
+
+Conda is great for reprduce... as you can install environment with specific tools/programs.
+The basic command:
 
 `conda create --name <environment_name> -c <channel> <tool1> <tool2>`
 
-Create an environment to download SRA files from NCBI.
+Create an environment called sra-tools from the channel bioconda with the program sra-tools
 
-    # Create an environment called sra-tools from the channel bioconda with the program sra-tools
-    conda create --name sra-tools -c bioconda sra-tools
 
-    # Activate the environment
-    conda activate sra-tools
+`conda create --name sra-tools -c bioconda sra-tools`
+
+
+Activate the environment
+
+`conda activate sra-tools`
+
+
+<details>
+
+  <summary>Click to expand!</summary>
+  
+    ## Heading
+    1. A numbered
+    2. list
+       * With some
+       * Sub bullets
+</details>
+
 
 It is also possible to install conda environment from yaml files in the `envs` folder
 
-    # Create environment from file
-    conda env create -f envs/sra-tools.yaml
+```
+# Create environment from file
+conda env create -f envs/sra-tools.yaml
 
-    # Activate the environment
-    conda activate sra-tools
+# Activate the environment
+conda activate sra-tools
 
-    # Deactivate the environment
-    conda deactivate
+# Deactivate the environment
+conda deactivate
+```
 
 ## 2. Pipeline with Snakemake
 

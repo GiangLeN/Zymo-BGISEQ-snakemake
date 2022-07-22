@@ -1488,8 +1488,8 @@ body {
 text-align: justify}
 </style>
 <p>This project shows how to build pipeline to analyze the metagenomic
-of publicly available zymoBIOMICS Mock community (citation). In this
-sample, there are 8 bacteria and 2 fungi at specific concentration.</p>
+of publicly available zymoBIOMICS Mock community. This sample contains 8
+bacteria and 2 fungi at specific concentration.</p>
 <p>The aim of this tutorial is to look at different tools and approaches
 and compared them for benchmark purposes. Codes, and scripts are also
 provided to tie various tools together.</p>
@@ -1513,47 +1513,21 @@ submit an issue on GitHub</a>.</p>
 <p>:warning: <strong>Large analysis</strong>: Will consume huge amount
 of disk space and computational power.</p>
 </blockquote>
-<div id="contents" class="section level2">
-<h2>Contents</h2>
-<div id="prepping-guides" class="section level3">
-<h3><a href="#1-prepping-guides">1. Prepping guides</a></h3>
-<ul>
-<li><a href="#sra-databases-of-zymobiomics">Data of interest</a>
-<ul>
-<li><a href="#bgiseq">BGISEQ</a></li>
-</ul></li>
-<li><a href="#conda-environments">Conda environments</a></li>
-</ul>
-</div>
-<div id="download-sra-with-snakemake" class="section level3">
-<h3><a href="#3-pipeline-with-snakemake">2. Download SRA with
-Snakemake</a></h3>
-<ul>
-<li><a href>Download workflow</a></li>
-<li><a href="#install-snakemake">Install Snakemake</a></li>
-<li><a href="#download-sra-data-using-snakemake">Download SRA data using
-Snakemake</a></li>
-<li><a href="#extract-forward-and-reverse-reads">Split sra file</a></li>
-<li><a href="#compress-files">Compress files to save space</a></li>
-<li><a href="#update-snakemake-to-process-multiple-files">Update
-Snakemake for multiple SRAs</a></li>
-</ul>
-</div>
-</div>
-<div id="prepping-guides-1" class="section level2">
+<div id="prepping-guides" class="section level2">
 <h2>1. Prepping guides</h2>
-<div id="sra-databases-of-zymobiomics" class="section level3">
-<h3>SRA databases of zymoBIOMICS</h3>
-<p>The SRA contains many databases from different projects. We are only
-interested in the zymoBIOMIC sequencing. It is possible to search for
-the data via Google Scholar or from the SRA webpage.</p>
-<p>Here we are looking at research projects that sequenced the
-zymoBIOMIC Mock community.</p>
+<div id="zymobiomics-data-on-ncbi" class="section level3">
+<h3>1.1 zymoBIOMICS data on NCBI</h3>
+<p>The Sequence Read Archive (SRA) contains many sequencing databases
+from different projects. Similar to their aims, we also hope to be able
+to reproduce the results and discover new finding from data analysis.
+Here we are looking at research projects that sequenced the zymoBIOMIC
+Mock community.</p>
 <p>The list of SRA files that are used for the analysis can be found in
 the <code>sra_files</code> directory.</p>
 <div id="bgiseq" class="section level4">
-<h4>BGISEQ</h4>
-<p>Name, looks at different extraction methods for BGI sequencing.</p>
+<h4>1.1.1 BGISEQ</h4>
+<p>Name, looks at different extraction methods for BGI sequencing. Five
+different extraction methods were tested.</p>
 <table>
 <thead>
 <tr class="header">
@@ -1748,16 +1722,25 @@ the <code>sra_files</code> directory.</p>
 </div>
 </div>
 <div id="conda-environments" class="section level3">
-<h3>Conda environments</h3>
-<p>We can create an environment with specific tools/programs as
-follows:</p>
+<h3>1.2 Conda environments</h3>
+<p>Conda is great for reprduce… as you can install environment with
+specific tools/programs. The basic command:</p>
 <p><code>conda create --name &lt;environment_name&gt; -c &lt;channel&gt; &lt;tool1&gt; &lt;tool2&gt;</code></p>
-<p>Create an environment to download SRA files from NCBI.</p>
-<pre><code># Create an environment called sra-tools from the channel bioconda with the program sra-tools
-conda create --name sra-tools -c bioconda sra-tools
-
-# Activate the environment
-conda activate sra-tools</code></pre>
+<p>Create an environment called sra-tools from the channel bioconda with
+the program sra-tools</p>
+<p><code>conda create --name sra-tools -c bioconda sra-tools</code></p>
+<p>Activate the environment</p>
+<p><code>conda activate sra-tools</code></p>
+<details>
+<summary>
+Click to expand!
+</summary>
+<pre><code>## Heading
+1. A numbered
+2. list
+   * With some
+   * Sub bullets</code></pre>
+</details>
 <p>It is also possible to install conda environment from yaml files in
 the <code>envs</code> folder</p>
 <pre><code># Create environment from file
