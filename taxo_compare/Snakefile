@@ -1,0 +1,120 @@
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample's name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("samples.tsv")
+
+rule all:
+    input:
+        expand("01.taxonomy/raw/{sample}_@.mp3.profile", sample = _samples.index),
+        expand("01.taxonomy/raw/{sample}_@.bracken", sample = _samples.index)
+
+rule kraken_db:
+    output:
+        temp("databases/k2_standard_20220607.tar.gz")
+    params:
+        directory("databases")
+    shell:
+        """
+        wget -P {params} https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20220607.tar.gz
+        """
+
+rule kraken_unzip:
+    input:
+        "databases/k2_standard_20220607.tar.gz"
+    output:
+        "databases/hash.k2d",
+        "databases/opts.k2d",
+        "databases/taxo.k2d",
+        "databases/seqid2taxid.map",
+    params:
+        directory("databases")
+    shell:
+        """
+        tar xf {input} -C {params}
+        """
+
+rule bracken:
+    input:
+        # extract the forward (r1) and reverse (r2) reads
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        kraken_db = "databases/hash.k2d"
+    output:
+        kraken = temp("01.taxonomy/raw/{sample}_@.kraken2"),
+        bracken = "01.taxonomy/raw/{sample}_@.bracken"
+    conda:
+        "envs/krabraken.yaml"
+    params:
+        db = "databases",
+        report = "01.taxonomy/raw/{sample}_@_kraken2.report",
+    threads: @
+    benchmark:
+        repeat("benchmark/{sample}_@_kraken.txt", 3)
+    shell:
+        """
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} > {output.kraken}
+        bracken -d {params.db} -i {params.report} -l S -o {output.bracken}
+        """
+
+rule metaphlan_db:
+    output:
+        temp("databases/mpa_v30_CHOCOPhlAn_201901.tar"),
+        temp("databases/mpa_v30_CHOCOPhlAn_201901.md5"),
+    params:
+        "databases"
+    shell:
+        """
+        mkdir -p {params}
+        wget -P {params} https://zenodo.org/record/3957592/files/mpa_v30_CHOCOPhlAn_201901.tar
+        wget -P {params} https://zenodo.org/record/3957592/files/mpa_v30_CHOCOPhlAn_201901.md5
+        """
+
+rule metaphlan_setup:
+    input:
+        "databases/mpa_v30_CHOCOPhlAn_201901.tar",
+        "databases/mpa_v30_CHOCOPhlAn_201901.md5",
+    output:
+        expand("databases/mpa_v30_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        expand("databases/mpa_v30_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+    conda:
+        "envs/metaphlan.yaml"
+    params:
+        "databases"
+    shell:
+        """
+        metaphlan --install --index mpa_v30_CHOCOPhlAn_201901 --bowtie2db {params}
+        """
+
+rule metaphlan3:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        mtp1 = expand("databases/mpa_v30_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_v30_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+    output:
+        "01.taxonomy/raw/{sample}_@.mp3.profile",
+    conda:
+        "envs/metaphlan.yaml"
+    params:
+        bowtie2db = "databases",
+        index = "mpa_v30_CHOCOPhlAn_201901",
+        bw2 = "01.taxonomy/raw/{sample}_@.mp3.bw2.bz2",
+    benchmark:
+        repeat("benchmark/{sample}_@_metaphlan.txt", 3)
+    threads: @
+    shell:
+        """
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats > {output}
+        """
