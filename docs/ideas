@@ -1,0 +1,3 @@
+fastp -i ERR4097109_1.fastq.gz -I ERR4097109_2.fastq.gz -o fastp1.gz -O fastq2.gz --n_base_limit 0 --cut_front --cut_tail --length_required 36 --adapter_sequence=AAGTCGGAGGCCAAGCGGTCTTAGGAAGACAA --adapter_sequence_r2=AAGTCGGATCGTAGCCATGTCGTTCTGTGAGCCAAGGAGTTG -j fastp.json -h fastp.html 2> fastp.log
+
+bbduk.sh in1=ERR4097109_1.fastq.gz in2=ERR4097109_2.fastq.gz out1=Trimmed1.fq.gz out2=Trimmed2.fq.gz ref=bgi_adapters ktrim=r k=23 mink=11 hdist=1 tpe tbo
