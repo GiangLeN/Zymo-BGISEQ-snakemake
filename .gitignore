@@ -1,3 +1,4 @@
 .snakemake/*
 ERR*/*
 *.gz
+taxo_compare/*

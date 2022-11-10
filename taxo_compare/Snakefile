@@ -12,10 +12,13 @@ def get_files(sample_df, wildcards, col):
 
 _samples = parse_samples("samples.tsv")
 
+num_threads = @
+
 rule all:
     input:
-        expand("01.taxonomy/raw/{sample}_@.mp3.profile", sample = _samples.index),
-        expand("01.taxonomy/raw/{sample}_@.bracken", sample = _samples.index)
+        expand("01.taxonomy/raw/{sample}_{nu_threads}.mp3.profile", sample = _samples.index, nu_threads = num_threads ),
+        expand("01.taxonomy/raw/{sample}_{nu_threads}.mp4.profile", sample = _samples.index, nu_threads = num_threads ),
+        expand("01.taxonomy/raw/{sample}_{nu_threads}.bracken", sample = _samples.index, nu_threads = num_threads)
 
 rule kraken_db:
     output:
@@ -49,68 +52,90 @@ rule bracken:
         r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
         kraken_db = "databases/hash.k2d"
     output:
-        kraken = temp("01.taxonomy/raw/{sample}_@.kraken2"),
-        bracken = "01.taxonomy/raw/{sample}_@.bracken"
+        kraken = temp("01.taxonomy/raw/{sample}_{nu_threads}.kraken2"),
+        bracken = "01.taxonomy/raw/{sample}_{nu_threads}.bracken"
     conda:
         "envs/krabraken.yaml"
     params:
         db = "databases",
-        report = "01.taxonomy/raw/{sample}_@_kraken2.report",
-    threads: @
+        report = "01.taxonomy/raw/{sample}_{nu_threads}_kraken2.report",
+    threads: num_threads
     benchmark:
-        repeat("benchmark/{sample}_@_kraken.txt", 3)
+        repeat("benchmark/{sample}_{nu_threads}_kraken.txt", 3)
     shell:
         """
         kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} > {output.kraken}
         bracken -d {params.db} -i {params.report} -l S -o {output.bracken}
         """
 
-rule metaphlan_db:
-    output:
-        temp("databases/mpa_v30_CHOCOPhlAn_201901.tar"),
-        temp("databases/mpa_v30_CHOCOPhlAn_201901.md5"),
-    params:
-        "databases"
-    shell:
-        """
-        mkdir -p {params}
-        wget -P {params} https://zenodo.org/record/3957592/files/mpa_v30_CHOCOPhlAn_201901.tar
-        wget -P {params} https://zenodo.org/record/3957592/files/mpa_v30_CHOCOPhlAn_201901.md5
-        """
-
 rule metaphlan_setup:
-    input:
-        "databases/mpa_v30_CHOCOPhlAn_201901.tar",
-        "databases/mpa_v30_CHOCOPhlAn_201901.md5",
     output:
-        expand("databases/mpa_v30_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
-        expand("databases/mpa_v30_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+        expand("databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        expand("databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
     conda:
         "envs/metaphlan.yaml"
     params:
         "databases"
     shell:
         """
-        metaphlan --install --index mpa_v30_CHOCOPhlAn_201901 --bowtie2db {params}
+        metaphlan --install --index mpa_v31_CHOCOPhlAn_201901 --bowtie2db {params}
         """
 
 rule metaphlan3:
     input:
         r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
         r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
-        mtp1 = expand("databases/mpa_v30_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
-        mtp2 = expand("databases/mpa_v30_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+        mtp1 = expand("databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
     output:
-        "01.taxonomy/raw/{sample}_@.mp3.profile",
+        "01.taxonomy/raw/{sample}_{nu_threads}.mp3.profile",
     conda:
         "envs/metaphlan.yaml"
     params:
         bowtie2db = "databases",
-        index = "mpa_v30_CHOCOPhlAn_201901",
-        bw2 = "01.taxonomy/raw/{sample}_@.mp3.bw2.bz2",
+        index = "mpa_v31_CHOCOPhlAn_201901",
+        bw2 = "01.taxonomy/raw/{sample}_{nu_threads}.mp3.bw2.bz2",
     benchmark:
-        repeat("benchmark/{sample}_@_metaphlan.txt", 3)
-    threads: @
+        repeat("benchmark/{sample}_{nu_threads}_metaphlan.txt", 3)
+    threads: num_threads
+    shell:
+        """
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats > {output}
+        """
+
+rule metaphlan4_setup:
+    output:
+        expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
+        expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
+    conda:
+        "envs/metaphlan4.yaml"
+    params:
+        "databases"
+    shell:
+        """
+        metaphlan --install --index mpa_vJan21_CHOCOPhlAnSGB_202103 --bowtie2db {params}
+        """
+
+rule metaphlan4:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        mtp1 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
+    output:
+        "01.taxonomy/raw/{sample}_{nu_threads}.mp4.profile",
+    conda:
+        "envs/metaphlan4.yaml"
+    params:
+        bowtie2db = "databases",
+        index = "mpa_vJan21_CHOCOPhlAnSGB_202103",
+        bw2 = "01.taxonomy/raw/{sample}_{nu_threads}.mp4.bw2.bz2",
+    benchmark:
+        repeat("benchmark/{sample}_{nu_threads}_metaphlan4.txt", 3)
+    threads: num_threads
     shell:
         """
         if [[ -f {params.bw2} ]]; then
