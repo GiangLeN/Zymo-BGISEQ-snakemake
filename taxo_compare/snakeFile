@@ -16,9 +16,8 @@ num_threads = 12
 
 rule all:
     input:
-        expand("01.taxonomy/raw/{sample}_{nu_threads}.mp3.profile", sample = _samples.index, nu_threads = num_threads ),
-        expand("01.taxonomy/raw/{sample}_{nu_threads}.mp4.profile", sample = _samples.index, nu_threads = num_threads ),
-        expand("01.taxonomy/raw/{sample}_{nu_threads}.bracken", sample = _samples.index, nu_threads = num_threads)
+        expand("01.taxonomy/raw/{sample}_@.mp3.profile", sample = _samples.index),
+        expand("01.taxonomy/raw/{sample}_@.bracken", sample = _samples.index)
 
 rule kraken_db:
     output:
@@ -52,16 +51,16 @@ rule bracken:
         r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
         kraken_db = "databases/hash.k2d"
     output:
-        kraken = temp("01.taxonomy/raw/{sample}_{nu_threads}.kraken2"),
-        bracken = "01.taxonomy/raw/{sample}_{nu_threads}.bracken"
+        kraken = temp("01.taxonomy/raw/{sample}_@.kraken2"),
+        bracken = "01.taxonomy/raw/{sample}_@.bracken"
     conda:
         "envs/krabraken.yaml"
     params:
         db = "databases",
-        report = "01.taxonomy/raw/{sample}_{nu_threads}_kraken2.report",
-    threads: num_threads
+        report = "01.taxonomy/raw/{sample}_@_kraken2.report",
+    threads: @
     benchmark:
-        repeat("benchmark/{sample}_{nu_threads}_kraken.txt", 3)
+        repeat("benchmark/{sample}_@_kraken.txt", 3)
     shell:
         """
         kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} > {output.kraken}
@@ -126,16 +125,16 @@ rule metaphlan4:
         mtp1 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
         mtp2 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
     output:
-        "01.taxonomy/raw/{sample}_{nu_threads}.mp4.profile",
+        "01.taxonomy/raw/{sample}_@.mp3.profile",
     conda:
         "envs/metaphlan4.yaml"
     params:
         bowtie2db = "databases",
-        index = "mpa_vJan21_CHOCOPhlAnSGB_202103",
-        bw2 = "01.taxonomy/raw/{sample}_{nu_threads}.mp4.bw2.bz2",
+        index = "mpa_v30_CHOCOPhlAn_201901",
+        bw2 = "01.taxonomy/raw/{sample}_@.mp3.bw2.bz2",
     benchmark:
-        repeat("benchmark/{sample}_{nu_threads}_metaphlan4.txt", 3)
-    threads: num_threads
+        repeat("benchmark/{sample}_@_metaphlan.txt", 3)
+    threads: @
     shell:
         """
         if [[ -f {params.bw2} ]]; then

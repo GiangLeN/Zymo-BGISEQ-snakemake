@@ -1,0 +1,173 @@
+---
+layout: default
+title: "Metagenomic pipeline using Snakemake"
+author: "Ngoc Giang Le"
+version: 0.1
+date:
+#bibliography:
+nav_order: 1
+description: "Snakemake tutorial to process metagenomic files"
+permalink: /
+output:
+    html_document:
+      toc: true
+      toc_float: true
+      toc_depth: 3
+      fig_caption: true
+      highlight: tango
+---
+
+  
+```{=html}
+<style>
+  body {
+    text-align: justify}
+</style>
+```
+
+## 3 Taxonomic typing of raw data
+
+We want to know what is present in the raw reads.
+
+```
+mkdir bgi_pipeline
+
+cd bgi_pipeline
+```
+
+What is the different between kraken2 and metaphlan3?
+  [Short tutorial comparing Kraken2 vs metaplan3](mini_taxo/taxo_compare.md).
+
+Let's create a new project to analyze the downloaded and processed SRA files.
+
+```
+# Create a new folder
+mkdir bgi_pipeline
+
+# Move processed SRA files to the new folder
+mv ERR*.fastq.gz SRA_pipeline
+
+# Navigate to the new directory
+cd bgi_pipeline
+
+```
+
+Create a tab separated sample file called `sample.tsv`.
+This file contains *ID* and the paths for *forward* and *reverse* reads of the samples we want to process.
+
+*How to create this file*
+
+|ID        |r1                         |r2                         |
+|----------|---------------------------|---------------------------|
+| D6300-27 | ERR4097245.sra_1.fastq.gz | ERR4097245.sra_2.fastq.gz |
+| D6300-28 | ERR4097111.sra_1.fastq.gz | ERR4097111.sra_2.fastq.gz |
+| D6300-29 | ERR4097243.sra_1.fastq.gz | ERR4097243.sra_2.fastq.gz |
+| D6300-30 | ERR4097237.sra_1.fastq.gz | ERR4097237.sra_2.fastq.gz |
+| D6300-31 | ERR4097238.sra_1.fastq.gz | ERR4097238.sra_2.fastq.gz |
+| D6300-32 | ERR4097276.sra_1.fastq.gz | ERR4097276.sra_2.fastq.gz |
+
+Create a brand new `Snakefile` in the `SRA_pipeline` directory.
+
+Create rule to run bracken on the raw reads.
+First we need python packages to handle the `sample.tsv` file.
+The following functions parse the file and extract the forward and reverse reads of the sample.
+
+
+```
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample's name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("samples.tsv")
+
+```
+
+
+
+
+
+Use the following rules to download kraken2 database from the index zone (citation).
+
+> Warning: This database is over 60 GB of space
+
+```
+rule kraken_db:
+    output:
+        temp("databases/k2_standard_20220607.tar.gz")
+    params:
+        directory("databases")
+    shell:
+        """
+        wget -P {params} https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20220607.tar.gz
+        """
+
+rule kraken_unzip:
+    input:
+        "databases/k2_standard_20220607.tar.gz"
+    output:
+        "databases/hash.k2d",
+        "databases/opts.k2d",
+        "databases/taxo.k2d",
+        "databases/seqid2taxid.map",
+    params:
+        directory("databases")
+    shell:
+        """
+        tar xf {input} -C {params}
+        """
+```
+
+The rules above download the kraken/bracken database to the folder called `databases` and extract it. Once done the zipped *tar* file is removed. 
+
+
+
+
+```
+rule all:
+  input:
+  expand("01.taxonomy/raw/{sample}.bracken", sample = _samples.index)
+
+rule bracken:
+  input:
+  # extract the forward (r1) and reverse (r2) reads
+  r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+kraken_db = "database/hash.k2d"
+output:
+  kraken = temp("01.taxonomy/raw/{sample}.kraken2"),
+bracken = "01.taxonomy/raw/{sample}.bracken"
+threads: 80
+conda:
+  "envs/krabraken.yaml"
+params:
+  db = "database",
+report = "01.taxonomy/raw/{sample}_kraken2.report",
+shell:
+  """
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} > {output.kraken}
+        bracken -d {params.db} -i {params.report} -l S -o {output.bracken}
+```
+
+
+This group of tutorial aims to show how to use snakemake for reproducible research. 
+
+Accuracy, time and speed
+
+
+fastq to check for raw reads
+
+Assembly SPADES vs MEGAHIT
+
+
+Build the pipeline over time
+
+
+
