@@ -1,0 +1,260 @@
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("trimmed_samples.tsv")
+
+nthreads = 6
+
+rule all:
+    input:
+        expand("taxa_process/{sample}_{cores}_bracken_values.txt", sample = _samples.index, cores = nthreads),
+        expand("taxa_process/{sample}_{cores}_metaphlan4_values.txt", sample = _samples.index, cores = nthreads),
+        expand("taxa_process/{sample}_{cores}_metaphlan3_values.txt", sample = _samples.index, cores = nthreads),
+        expand("raw_taxo/{sample}_multiple_mapped_reads.txt" , sample = _samples.index),
+        expand("raw_taxo/{sample}_unique_reads.txt", sample = _samples.index),
+
+rule kraken_db:
+    output:
+        temp("databases/k2_pluspf_20220908.tar.gz")
+    params:
+        directory("databases")
+    shell:
+        """
+        wget -P {params} https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20220908.tar.gz
+        """
+
+rule kraken_unzip:
+    input:
+        "databases/k2_pluspf_20220908.tar.gz"
+    output:
+        "databases/hash.k2d",
+        "databases/opts.k2d",
+        "databases/taxo.k2d",
+        "databases/seqid2taxid.map",
+    params:
+        directory("databases")
+    shell:
+        """
+        tar xf {input} -C {params}
+        """
+
+rule bracken:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        kraken_db = "databases/hash.k2d"
+    output:
+        kraken = temp("raw_taxo/{sample}_{cores}.kraken2"),
+        report = "raw_taxo/{sample}_{cores}_kraken2.report",
+        bracken = "raw_taxo/{sample}_{cores}.bracken"
+    conda:
+        "envs/krabraken.yaml"
+    params:
+        db = "databases",
+        confidence = 0.1
+    threads: nthreads
+    benchmark:
+        repeat("benchmarks/{sample}_{cores}_bracken.txt", 3)
+    log:
+        kraken = "logs/{sample}_{cores}_raw_kraken.log",
+        bracken = "logs/{sample}_{cores}_raw_bracken.log"
+    shell:
+        """
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {output.report} --confidence {params.confidence} --threads {threads} {input.r1} {input.r2} > {output.kraken} 2> {log.kraken}
+        bracken -d {params.db} -i {output.report} -l S -o {output.bracken} 2> {log.bracken}
+        """
+
+rule taxa_bracken:
+    input:
+        ancient("raw_taxo/{sample}_{cores}.bracken")
+    output:
+        "taxa_process/{sample}_{cores}_bracken_values.txt",
+        "taxa_process/{sample}_{cores}_bracken_abundance.txt",
+    shell:
+        """
+        bash scripts/taxa_cal.sh {input} 
+        """
+
+rule metaphlan_setup:
+    output:
+        expand("databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        expand("databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+    conda:
+        "envs/metaphlan.yaml"
+    params:
+        "databases"
+    shell:
+        """
+        metaphlan --install --index mpa_v31_CHOCOPhlAn_201901 --bowtie2db {params}
+        """
+
+rule metaphlan3:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        mtp1 = expand("databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+    output:
+        "raw_taxo/{sample}_{cores}.metaphlan3",
+    conda:
+        "envs/metaphlan.yaml"
+    params:
+        bowtie2db = "databases",
+        index = "mpa_v31_CHOCOPhlAn_201901",
+        bw2 = "raw_taxo/{sample}_{cores}.mp3.bw2.bz2",
+    log:
+        "logs/{sample}_{cores}_metaphlan3.log"
+    benchmark:
+        repeat("benchmarks/{sample}_{cores}_metaphlan3.txt", 3)
+    threads: nthreads
+    shell:
+        """
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats > {output} 2> {log}
+        """
+
+rule taxa_metaphlan3:
+    input:
+        ancient("raw_taxo/{sample}_{cores}.metaphlan3")
+    output:
+        mp3val = "taxa_process/{sample}_{cores}_metaphlan3_values.txt",
+        mp3abund = "taxa_process/{sample}_{cores}_metaphlan3_abundance.txt",
+    shell:
+        """
+        bash scripts/taxa_cal.sh {input}
+        """
+
+rule metaphlan4_setup:
+    output:
+        expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
+        expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
+    conda:
+        "envs/metaphlan4.yaml"
+    params:
+        "databases"
+    shell:
+        """
+        metaphlan --install --index mpa_vJan21_CHOCOPhlAnSGB_202103 --bowtie2db {params}
+        """
+
+rule metaphlan4:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        mtp1 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
+    output:
+        "raw_taxo/{sample}_{cores}.metaphlan4",
+    conda:
+        "envs/metaphlan4.yaml"
+    params:
+        bowtie2db = "databases",
+        index = "mpa_vJan21_CHOCOPhlAnSGB_202103",
+        bw2 = "raw_taxo/{sample}_{cores}.mp4.bw2.bz2",
+    benchmark:
+        repeat("benchmarks/{sample}_{cores}_metaphlan4.txt", 3)
+    log:
+        "logs/{sample}_{cores}_metaphlan4.log"
+    threads: nthreads
+    shell:
+        """
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats > {output} 2> {log}
+        """
+
+rule taxa_metaphlan4:
+    input:
+        ancient("raw_taxo/{sample}_{cores}.metaphlan4"),
+    output:
+        mp4val = "taxa_process/{sample}_{cores}_metaphlan4_values.txt",
+        mp4abund = "taxa_process/{sample}_{cores}_metaphlan4_abundance.txt",
+    shell:
+        """
+        bash -x scripts/taxa_cal.sh {input}
+        """
+
+checkpoint zymoMocks:
+    output:
+        genomes = temp(directory("databases/BioPool_genomes")),
+        zip = temp("ZymoBIOMICS.STD.genomes.ZR160406.zip")
+    conda:
+        "envs/zip.yaml"
+    shell:
+        """
+        wget https://s3.amazonaws.com/zymo-files/BioPool/ZymoBIOMICS.STD.genomes.ZR160406.zip
+        unzip -d databases {output.zip} 
+        """
+
+def get_zymo(wildcards):
+    zymoDir = checkpoints.zymoMocks.get(**wildcards).output["genomes"]
+    zymoRefGenome, = glob_wildcards(os.path.join(zymoDir,"genomes/{zymoRefGenome}.fasta"))
+    return expand("raw_taxo/{sample}.{refGenome}.{cores}.mapped.txt", cores = nthreads, sample = _samples.index, refGenome = zymoRefGenome )
+
+rule zymo_map:
+    input:
+        ref = "databases/BioPool_genomes/genomes/{refGenome}.fasta",
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+    output:
+        bam = temp("raw_taxo/{sample}.{refGenome}.{cores}.bam"),
+        stat = "raw_taxo/{sample}.{refGenome}.{cores}.stat",
+        mapped = "raw_taxo/{sample}.{refGenome}.{cores}.mapped.txt",
+    conda:
+        "envs/mapRaws.yaml"
+    threads: nthreads
+    benchmark:
+        "benchmarks/{sample}.{cores}.{refGenome}.txt"
+    shell:
+        """
+        bwa index {input.ref}
+        bwa mem -t {threads}  {input.ref} {input.r1} {input.r2} | samtools sort -o - > {output.bam}
+        samtools flagstat {output.bam} > {output.stat}
+        samtools view -F 4 {output.bam} | cut -f1 | awk '!s[$0]++' > {output.mapped}
+        """
+
+rule common_reads:
+    input:
+        get_zymo
+    output:
+        "raw_taxo/{sample}_multiple_mapped_reads.txt"
+    shell:
+        """
+        cat {input} | sort | uniq -c | awk '$1 > 1' | sort -n > {output}
+        """
+
+def zymo_reads(wildcards):
+    zymoDir = checkpoints.zymoMocks.get(**wildcards).output["genomes"]
+    zymoRefGenome, = glob_wildcards(os.path.join(zymoDir,"genomes/{zymoRefGenome}.fasta"))
+    return expand("raw_taxo/{sample}.{refGenome}.{cores}.unique_mapped.txt", cores = nthreads, sample = _samples.index, refGenome = zymoRefGenome )
+
+rule reads_filter:
+    input:
+        mapped = "raw_taxo/{sample}.{refGenome}.{cores}.mapped.txt",
+        common = "raw_taxo/{sample}_multiple_mapped_reads.txt"
+    output:
+        common = temp("raw_taxo/{sample}.{refGenome}.{cores}.unique_reads.txt"),
+        uniq = "raw_taxo/{sample}.{refGenome}.{cores}.unique_mapped.txt"
+    shell:
+        """
+        awk '{{print $2}}' {input.common} > {output.common}
+        LC_ALL=C fgrep -cvwf {output.common} {input.mapped} > {output.uniq}
+        """
+
+rule unique_reads:
+    input:
+        zymo_reads
+    output:
+        "raw_taxo/{sample}_unique_reads.txt"
+    shell:
+        """
+        cat {input} > sort -n > {output}
+        """
