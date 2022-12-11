@@ -1,0 +1,174 @@
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("trimmed_samples.tsv")
+
+nthreads = 8
+
+rule all:
+    input:
+        expand("reads_stat/{sample}.trimmed_reads.txt", sample = _samples.index),
+        expand("reads_stat/{sample}.{cores}.bgi_rmhuman_reads.txt", cores = nthreads, sample = _samples.index),
+        expand("reads_stat/{sample}.{cores}.bwa2_rmhuman_reads.txt", sample = _samples.index, cores = nthreads),
+        expand("reads_stat/{sample}.{cores}.bwa_rmhuman_reads.txt", sample = _samples.index, cores = nthreads)
+
+
+rule human_ref_download:
+    output:
+        temp("databases/human/GCF_000001405.40_GRCh38.p14_genomic.fna.gz"),
+        temp("databases/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz")
+    params:
+        directory("databases/human")
+    shell:
+        """
+        wget -P {params} https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/latest_assembly_versions/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz
+        wget -P {params} https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/latest_assembly_versions/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz
+        """
+
+rule human_ref_fasta:
+    input:
+        genome = "databases/human/GCF_000001405.40_GRCh38.p14_genomic.fna.gz",
+        yChromosome = "databases/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
+    output:
+        genome = temp("databases/human/GCF_000001405.40_GRCh38.p14_genomic.fna"),
+        yChromosome = temp("databases/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna"),
+        final_ref = "databases/human/human_reference.fasta",
+    shell:
+        """
+        gunzip {input.genome} 
+        gunzip {input.yChromosome}
+        cat {output.genome} {output.yChromosome} > {output.final_ref}
+        """
+
+rule trimmed_stat:
+     input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+     output:
+        "reads_stat/{sample}.trimmed_reads.txt"
+     conda:
+        "envs/filter.yaml"
+     shell:
+        """
+        seqkit stat {input} > {output}
+        """
+
+rule bgi_method:
+     input:
+        human_ref = "databases/human/human_reference.fasta",
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+     output:
+        sam = "remove_human/{sample}.{cores}.bgi.sam",
+        rmhost_r1 = "remove_human/{sample}.{cores}.bgi.rmhuman.1.fq.gz",
+        rmhost_r2 = "remove_human/{sample}.{cores}.bgi.rmhuman.2.fq.gz"
+     params:
+        human_bowtie = "databases/human/human_ref_bgi"
+     conda:
+        "envs/bgi_rm_hu.yaml"
+     benchmark:
+        "benchmarks/{sample}.{cores}.bgi_method.txt"
+     threads: nthreads
+     log:
+        "logs/{sample}.{cores}.bgi_rmhuman.txt"
+     shell:
+        """
+        bowtie2-build -f --threads {threads} {input.human_ref} {params.human_bowtie} 
+        bowtie2 --end-to-end --very-sensitive -p {threads} -I 0 -X 600 -x {params.human_bowtie} --mm -1 {input.r1} -2 {input.r2} > {output.sam} 2> {log}
+        samtools fastq -N -c 5 -f 12 -F 256 -1 {output.rmhost_r1} -2 {output.rmhost_r2} {output.sam}
+        """
+
+rule bgi_reads_stat:
+     input:
+        expand("remove_human/{sample}.{cores}.bgi.rmhuman.{read}.fq.gz", sample = _samples.index, cores = nthreads, read = ["1","2"])
+     output:
+        "reads_stat/{sample}.{cores}.bgi_rmhuman_reads.txt"
+     conda:
+        "envs/filter.yaml"
+     shell:
+        """
+        seqkit stat {input} > {output}
+        """
+
+rule bwa_method:
+     input:
+        human_ref = "databases/human/human_reference.fasta",
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+     output:
+        bam = "remove_human/{sample}.{cores}.bwa.bam",
+        bam_unmapped = "remove_human/{sample}.{cores}.bwa_unmapped.bam",
+        rmhost_r1 = "remove_human/{sample}.{cores}.bwa.rmhuman.1.fq.gz",
+        rmhost_r2 = "remove_human/{sample}.{cores}.bwa.rmhuman.2.fq.gz"
+     params:
+        human_bwa = "databases/human/human_ref_bwa"
+     conda:
+        "envs/mapRaws.yaml"
+     benchmark:
+        "benchmarks/{sample}.{cores}.bwa_method.txt"
+     threads: nthreads
+     log:
+        "logs/{sample}.{cores}.bwa_rmhuman.txt"
+     shell:
+        """
+        bwa index -a bwtsw {input.human_ref} -p {params.human_bwa}
+        bwa mem -t {threads} {params.human_bwa} {input.r1} {input.r2} | samtools sort -o {output.bam} 2> {log}
+        samtools view -@ {threads} -b -f 4 {output.bam} > {output.bam_unmapped}
+        bedtools bamtofastq -i {output.bam_unmapped} -fq {output.rmhost_r1} -fq2 {output.rmhost_r2} 
+        """
+
+rule bwa_reads_stat:
+     input:
+        expand("remove_human/{sample}.{cores}.bwa.rmhuman.{read}.fq.gz", sample = _samples.index, cores = nthreads, read = ["1","2"])
+     output:
+        "reads_stat/{sample}.{cores}.bwa_rmhuman_reads.txt"
+     conda:
+        "envs/filter.yaml"
+     shell:
+        """
+        seqkit stat {input} > {output}
+        """
+
+rule bwa_method2:
+     input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+     output:
+        bam = "remove_human/{sample}.{cores}.bwa2.bam",
+        bam_unmapped = "remove_human/{sample}.{cores}.bwa2_unmapped.bam",
+        bam_unmapped_sort = "remove_human/{sample}.{cores}.bwa2_unmapped.bam.sort",
+        rmhost_r1 = "remove_human/{sample}.{cores}.bwa2.rmhuman.1.fq.gz",
+        rmhost_r2 = "remove_human/{sample}.{cores}.bwa2.rmhuman.2.fq.gz"
+     params:
+        human_bwa = "databases/human/human_ref_bwa"
+     conda:
+        "envs/mapRaws.yaml"
+     benchmark:
+        "benchmarks/{sample}.{cores}.bwa_method2.txt"
+     threads: nthreads
+     log:
+        "logs/{sample}.{cores}.bwa_rmhuman2.txt"
+     shell:
+        """
+        bwa mem -t {threads} {params.human_bwa} {input.r1} {input.r2} | samtools view -bS - > {output.bam}
+        samtools view -@ {threads} -b -f 4 {output.bam} > {output.bam_unmapped}
+        samtools sort -@ {threads} -o {output.bam_unmapped_sort} {output.bam_unmapped}
+        bedtools bamtofastq -i {output.bam_unmapped_sort} -fq {output.rmhost_r1} -fq2 {output.rmhost_r2}
+        """
+
+rule bwa_reads_stat2:
+     input:
+        expand("remove_human/{sample}.{cores}.bwa2.rmhuman.{read}.fq.gz", sample = _samples.index, cores = nthreads, read = ["1","2"])
+     output:
+        "reads_stat/{sample}.{cores}.bwa2_rmhuman_reads.txt"
+     conda:
+        "envs/filter.yaml"
+     shell:
+        """
+        seqkit stat {input} > {output}
+        """

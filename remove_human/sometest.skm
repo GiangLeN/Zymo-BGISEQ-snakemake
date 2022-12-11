@@ -1,0 +1,211 @@
+
+```
+
+Test sort trimmed fastq with bbmap > no changes
+Test fastq extraction with bedtools vs samtools > no changes
+
+Conclusion:
+- bwa method needs fastq header
+- bwa can align more sqeuences than bowtie
+- can use multiple expands in same rule
+
+```
+
+import pandas as pd
+
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return SRA name based on the sample's name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("samples.tsv")
+
+rule all:
+    input:
+        expand("reads_stat/{sample}.bwa_rmhuman_reads.txt", sample = _samples.index),
+        expand("reads_stat/{sample}.bbmapbowtie_rmhuman_reads.txt", sample = _samples.index)
+
+
+rule download:
+    params:
+        lambda wildcards: get_files(_samples, wildcards, 'run_accession')[0]
+    output:
+        r1 = "00.raw/{sample}_1.fastq.gz",
+        r2 = "00.raw/{sample}_2.fastq.gz"
+    threads: 3
+    conda:
+        "envs/kingfisher.yaml"
+    shell:
+        """
+        kingfisher get -r {params} -f fastq.gz -m ena-ftp --check-md5sums --download-threads {threads}
+        mv {params}_1.fastq.gz {output.r1}
+        mv {params}_2.fastq.gz {output.r2}
+        """
+
+rule trimming:
+    input:
+        r1 = "00.raw/{sample}_1.fastq.gz",
+        r2 = "00.raw/{sample}_2.fastq.gz"
+    output:
+        r1_trim = "01.trimmed/{sample}_trimmed_1.fq.gz",
+        r2_trim = "01.trimmed/{sample}_trimmed_2.fq.gz",
+        json = "01.trimmed/{sample}_trimmed.json",
+        html = "01.trimmed/{sample}_trimmed.html"
+    threads: 3
+    params:
+        min_length = 60
+    conda:
+        "envs/fastp.yaml"
+    shell:
+        """
+        fastp --detect_adapter_for_pe -w {threads} -i {input.r1} -I {input.r2} -o {output.r1_trim} -O {output.r2_trim} --n_base_limit 0 --cut_front --cut_tail --length_required {params.min_length} -j {output.json} -h {output.html}
+        """
+
+rule readsCheck:
+    input:
+        "01.trimmed/{sample}_trimmed.json",
+    output:
+        "01.trimmed/{sample}_reads_tracking.txt"
+    shell:
+        """
+        echo sample:{wildcards.sample} > {output}
+        grep -w "before_filtering" {input} -A1 | grep "total_reads" | tr -d '\t", ' >> {output}
+        grep "filtering_result" {input} -A5 | sed '1d' | tr -d '\t", ' >> {output}
+        """
+
+rule human_ref_download:
+    output:
+        "databases/human/GCF_000001405.40_GRCh38.p14_genomic.fna.gz",
+        "databases/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
+    params:
+        directory("databases/human")
+    shell:
+        """
+        wget -P {params} https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/latest_assembly_versions/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz
+        wget -P {params} https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/latest_assembly_versions/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz
+        """
+
+rule human_ref_fasta:
+    input:
+        genome = "databases/human/GCF_000001405.40_GRCh38.p14_genomic.fna.gz",
+        yChromosome = "databases/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
+    output:
+        genome = temp("databases/human/GCF_000001405.40_GRCh38.p14_genomic.fna"),
+        yChromosome = temp("databases/human/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna"),
+        final_ref = "databases/human/human_reference.fasta",
+    shell:
+        """
+        gunzip {input.genome}
+        gunzip {input.yChromosome}
+        cat {output.genome} {output.yChromosome} > {output.final_ref}
+        """
+
+rule human_ref_bwa:
+     input:
+        "databases/human/human_reference.fasta",
+     output:
+        multiext("databases/human/human_reference.fasta", ".amb", ".ann", ".bwt", ".pac", ".sa")
+     conda:
+        "envs/mapRaws.yaml"
+     shell:
+        """
+        bwa index -a bwtsw {input}
+        """
+
+rule reads_reorder:
+     input:
+        r1 = "01.trimmed/{sample}_trimmed_1.fq.gz",
+        r2 = "01.trimmed/{sample}_trimmed_2.fq.gz",
+     output:
+        r1 = "01.trimmed/{sample}_trimmed_1sort.fq.gz",
+        r2 = "01.trimmed/{sample}_trimmed_2sort.fq.gz",
+     conda:
+        "envs/bbmap.yaml"
+     shell:
+        """
+        repair.sh in1={input.r1} in2={input.r2} out1={output.r1} out2={output.r2}
+        """
+
+rule remove_human:
+     input:
+        r1 = "01.trimmed/{sample}_trimmed_1sort.fq.gz",
+        r2 = "01.trimmed/{sample}_trimmed_2sort.fq.gz",
+        hu_fa = "databases/human/human_reference.fasta",
+        hu_ref = ancient(multiext("databases/human/human_reference.fasta", ".amb", ".ann", ".bwt", ".pac", ".sa"))
+     output:
+        bam = temp("remove_human/{sample}.bwa.bbmapbam"),
+        bam_unmapped = temp("remove_human/{sample}.bbmap.bwa_unmapped.bam"),
+        rmhost_r1 = "01.trimmed/{sample}_rmhuman_1bbmap.fq.gz",
+        rmhost_r2 = "01.trimmed/{sample}_rmhuman_2bbmap.fq.gz",
+        rmhost_1 = "01.trimmed/{sample}_rmhuman_1abbmap.fq.gz",
+        rmhost_2 = "01.trimmed/{sample}_rmhuman_2abbmap.fq.gz"
+     conda:
+        "envs/mapRaws.yaml"
+     threads: 8
+     shell:
+        """
+        bwa mem -t {threads} {input.hu_fa} {input.r1} {input.r2} | samtools sort -o {output.bam}
+        samtools view -@ {threads} -b -f 4 {output.bam} > {output.bam_unmapped}
+        bedtools bamtofastq -i {output.bam_unmapped} -fq {output.rmhost_r1} -fq2 {output.rmhost_r2}
+        samtools fastq -N -c 5 -f 12 -F 256 -1 {output.rmhost_1} -2 {output.rmhost_2} {output.bam_unmapped}
+        """
+
+rule remove_human2:
+     input:
+        r1 = "01.trimmed/{sample}_trimmed_1.fq.gz",
+        r2 = "01.trimmed/{sample}_trimmed_2.fq.gz",
+        hu_fa = "databases/human/human_reference.fasta",
+        hu_ref = ancient(multiext("databases/human/human_reference.fasta", ".amb", ".ann", ".bwt", ".pac", ".sa"))
+     output:
+        bam = temp("remove_human/{sample}.bwa.bam"),
+        bam_unmapped = temp("remove_human/{sample}.bwa_unmapped.bam"),
+        rmhost_r1 = "01.trimmed/{sample}_rmhuman_1.fq.gz",
+        rmhost_r2 = "01.trimmed/{sample}_rmhuman_2.fq.gz",
+        rmhost_1 = "01.trimmed/{sample}_rmhuman_1a.fq.gz",
+        rmhost_2 = "01.trimmed/{sample}_rmhuman_2a.fq.gz"
+     conda:
+        "envs/mapRaws.yaml"
+     threads: 8
+     shell:
+        """
+        bwa mem -t {threads} {input.hu_fa} {input.r1} {input.r2} | samtools sort -o {output.bam}
+        samtools view -@ {threads} -b -f 4 {output.bam} > {output.bam_unmapped}
+        bedtools bamtofastq -i {output.bam_unmapped} -fq {output.rmhost_r1} -fq2 {output.rmhost_r2}
+        samtools fastq -N -c 5 -f 12 -F 256 -1 {output.rmhost_1} -2 {output.rmhost_2} {output.bam_unmapped}
+        """
+
+rule bgi_reads_stat:
+     input:
+        bowtie = expand("01.trimmed/{sample}_rmhuman_{read}abbmap.fq.gz", sample = _samples.index, read = ["1","2"]),
+        bwa = expand("01.trimmed/{sample}_rmhuman_{read}bbmap.fq.gz", sample = _samples.index, read = ["1","2"])
+     output:
+        bowtie = "reads_stat/{sample}.bbmapbowtie_rmhuman_reads.txt",
+        bwa = "reads_stat/{sample}.bbmapbwa_rmhuman_reads.txt"
+     conda:
+        "envs/seqkit.yaml"
+     shell:
+        """
+        seqkit stat {input.bowtie} > {output.bowtie}
+        seqkit stat {input.bwa} > {output.bwa}
+        """
+
+rule bgi_reads_stat2:
+     input:
+        bowtie = expand("01.trimmed/{sample}_rmhuman_{read}.fq.gz", sample = _samples.index, read = ["1","2"]),
+        bwa = expand("01.trimmed/{sample}_rmhuman_{read}.fq.gz", sample = _samples.index, read = ["1","2"])
+     output:
+        bowtie = "reads_stat/{sample}.bowtie_rmhuman_reads.txt",
+        bwa = "reads_stat/{sample}.bwa_rmhuman_reads.txt"
+     conda:
+        "envs/seqkit.yaml"
+     shell:
+        """
+        seqkit stat {input.bowtie} > {output.bowtie}
+        seqkit stat {input.bwa} > {output.bwa}
+        """
