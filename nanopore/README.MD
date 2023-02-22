@@ -13,7 +13,7 @@ We need to create an environment.yaml file that includes *Snakemake* and *pandas
 ```
 name: snakemake
 channels:
-  - conda-forge
+  - bioconda
 dependencies:
   - pandas
   - snakemake
@@ -47,23 +47,24 @@ This is the structure of `sample.tsv` file that we will use as input.
 ```
 import pandas
 
+# Read TSV file into a Pandas DataFrame and index it based on a specified column
 def parse_samples(samples_tsv):
     return pandas.read_csv(samples_tsv, sep='\t').set_index("id", drop=False)
-
+# Returns the value in the specified column for the row that matches the wildcard variable in the DataFrame. 
 def get_sample_id(sample_df, wildcards, col):
     return sample_df.loc[wildcards.sample, [col]].dropna()[0]
-
+    
 _samples = parse_samples("sample.tsv")
 
 ```
-
-
-
 
 ## Quality control
 The first step in processing metagenomic data from nanopore sequencing is quality control. Quality control is important to ensure that the data generated is of high quality and to filter out any low-quality reads. The quality control process involves removing adapters, filtering out reads with low base-calling quality scores, and trimming reads to remove any low-quality bases.
 
 To perform quality control, there are several tools available such as Porechop, Guppy, and NanoFilt. These tools can remove adapters, filter out low-quality reads, and trim reads to a desired length. It is important to choose the appropriate quality control tool based on the specific needs of your analysis.
+
+
+
 
 ## Assembly
 Once the quality control step is completed, the next step is to assemble the high-quality reads into contigs. Assembly is the process of merging overlapping reads to create longer sequences. The goal of assembly is to reconstruct the original genome of the organisms present in the sample.
