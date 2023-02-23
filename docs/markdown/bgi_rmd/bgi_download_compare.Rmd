@@ -1,0 +1,73 @@
+Introduction
+The NCBI Sequence Read Archive (SRA) and the European Nucleotide Archive (ENA) are two of the largest public repositories of high-throughput sequencing data. To access this data, there are various tools available, including SRA-Tools and Kingfisher. In this tutorial, we will compare these two tools and show you how to use them to download sequencing data from ENA and SRA.
+
+Installing the tools
+Both Kingfisher and SRA-Tools can be installed using the conda package manager. Here are the installation commands:
+
+Installing Kingfisher
+bash
+Copy code
+conda install -c bioconda kingfisher
+Installing SRA-Tools
+bash
+Copy code
+conda install -c bioconda sra-tools
+Downloading data from ENA
+Using Kingfisher
+To download data from ENA using Kingfisher, you need to provide a list of accessions in a text file. Here's an example of how to download two sequencing runs from ENA:
+
+Create a file ena_accessions.txt with the following content:
+Copy code
+ERR4584932
+ERR4584933
+Use Kingfisher to download the data:
+bash
+Copy code
+kingfisher ena download -i ena_accessions.txt -o ena_data
+This command will download the data to a directory called ena_data.
+
+Using SRA-Tools
+To download data from ENA using SRA-Tools, you need to use the fastq-dump command. Here's an example of how to download two sequencing runs from ENA:
+
+bash
+Copy code
+fastq-dump --split-files ERR4584932 ERR4584933 --outdir sra_data
+This command will download the data to a directory called sra_data.
+
+Downloading data from SRA
+Using Kingfisher
+To download data from SRA using Kingfisher, you need to provide a list of accessions in a text file. Here's an example of how to download two sequencing runs from SRA:
+
+Create a file sra_accessions.txt with the following content:
+Copy code
+SRR10903401
+SRR10903402
+Use Kingfisher to download the data:
+bash
+Copy code
+kingfisher sra download -i sra_accessions.txt -o sra_data
+This command will download the data to a directory called sra_data.
+
+Using SRA-Tools
+To download data from SRA using SRA-Tools, you need to use the fastq-dump command. Here's an example of how to download two sequencing runs from SRA:
+
+bash
+Copy code
+fastq-dump --split-files SRR10903401 SRR10903402 --outdir sra_data
+This command will download the data to a directory called sra_data.
+
+Comparison of the tools
+Both Kingfisher and SRA-Tools are capable of downloading data from ENA and SRA, and both tools are relatively easy to use. However, there are some differences to consider when choosing which tool to use:
+
+Kingfisher
+Supports multiple data sources including ENA and SRA
+Can download data in parallel
+Provides a progress bar during downloads
+Supports resuming failed downloads
+SRA-Tools
+Specifically designed for downloading data from SRA
+Provides various options for downloading data (e.g., compressed vs uncompressed)
+Can download data in parallel
+Supports resuming
+
+
