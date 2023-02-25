@@ -2,3 +2,4 @@
 ERR*/*
 *.gz
 taxo_compare/*
+.Rhistory

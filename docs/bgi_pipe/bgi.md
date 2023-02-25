@@ -25,50 +25,60 @@ text-align: justify}
 </style>
 ```
 
+## Introduction
 
-## ZymoBIOMICS Mock Community
+BGI-seq is a sequencing platform developed by the BGI (Beijing Genomics Institute) for whole genome sequencing and metagenomic analysis. In this tutorial, we will walk through the steps of processing metagenomic data generated from BGI-seq using a combination of software tools and pipelines.
 
-The [ZymoBIOMICS Mock Community](https://zymoresearch.eu/collections/zymobiomics-microbial-community-standards) is a synthetic microbial community designed for use as a positive control in microbiome studies.
-It consists of 8 bacterial strains and 2 yeast strains that are commonly found in environmental and human microbiomes.
-The strains are provided in precise, known amounts to enable accurate quantification of microbiome sequencing data.
-The Mock Community can be used to assess the accuracy, precision, and sensitivity of microbiome sequencing methods, and to compare results across different studies and sequencing platforms.
+Preprocessing
+Quality Control
+The first step in processing BGI-seq metagenomic data is to perform quality control on the raw reads. This is typically done using software tools such as FastQC, which generates quality reports and identifies potential issues with the sequencing data.
 
-## Public repositories of nucleotide sequences
+bash
+Copy code
+fastqc -o output_directory input_file.fastq.gz
+Trimming
+After performing quality control, we may want to trim the raw reads to remove low-quality regions and adapter sequences. This can be done using software tools such as Trimmomatic or Cutadapt.
 
-The [Sequence Read Archive (SRA)](https://www.ncbi.nlm.nih.gov/sra) and the [European Nucleotide Archive (ENA)](https://www.ebi.ac.uk/ena/browser/home) are both public repositories of nucleotide sequence data.
-Both repositories store a wide range of nucleotide sequence data, including DNA, RNA, and protein sequences, from various organisms and sample types.
-The data is annotated with detailed metadata describing the sample information, sequencing methods, and experimental design, and can be accessed and downloaded using web-based search interfaces or programmatically using APIs or command-line tools
-The SRA and ENA are valuable resources for researchers in the field of genomics, providing access to a large and diverse collection of nucleotide sequence data for analysis and interpretation.
+bash
+Copy code
+trimmomatic PE -phred33 input_file_R1.fastq.gz input_file_R2.fastq.gz output_file_R1.fastq.gz output_file_R2.fastq.gz ILLUMINACLIP:adapter_file.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+Host Filtering
+If we are interested in analyzing the microbial content of a sample, we may want to remove any reads that originate from the host organism. This can be done using tools such as Bowtie or BWA to align the reads to a reference genome of the host organism.
 
-Using publicly available data from SRA and ENA, we will download and build a metagenomic pipeline for re-analysis.
+bash
+Copy code
+bowtie2-build host_genome.fa host_genome_index
+bowtie2 -x host_genome_index -1 input_file_R1.fastq.gz -2 input_file_R2.fastq.gz -S host_aligned.sam
+samtools view -bS host_aligned.sam | samtools sort -o host_aligned.bam
+samtools index host_aligned.bam
+samtools view -bS -f 12 -F 256 host_aligned.bam > non_host.bam
+Assembly
+Co-assembly
+After preprocessing, we can perform assembly of the metagenomic data using software tools such as MEGAHIT or IDBA-UD. Co-assembly of multiple samples can be performed to improve the quality and completeness of the resulting contigs.
 
+bash
+Copy code
+megahit -1 input_file_R1.fastq.gz -2 input_file_R2.fastq.gz -o output_directory
+Gene Prediction
+After assembly, we can predict the genes present in the metagenomic data using tools such as Prodigal or MetaGeneMark. This can provide information on the functional content of the metagenome.
 
-## Aims
+bash
+Copy code
+prodigal -i contigs.fa -o genes.faa -a proteins.fna -p meta
+Taxonomic Classification
+After predicting genes, we may want to assign taxonomic classifications to the genes and contigs using software tools such as Kraken or MetaPhlAn. This can provide insight into the taxonomic composition of the metagenomic data.
 
-The tutorials will look at different tools and approaches and compared them for benchmark purposes.
-Codes, and scripts are also provided to tie various tools together.
+bash
+Copy code
+kraken2 --db database --threads 4 --output output_file --report report_file genes.faa
+Functional Annotation
+After assigning taxonomic classifications, we can annotate the functions of the predicted genes using software tools such as eggNOG-mapper or KEGG. This can provide insight into the functional content of the metagenomic data.
 
-Our aim is to use these data to understand more about the sequencing method and optimize the pipeline.
-We hope to reproduce the original results as well as discover new findings.
-
-## Preparation
-
-To get the most out of this, it is assumed that you have basic knowledge about the command lines, Bash, Python, R and anaconda.
-However, explanation of the codes are provided and so following along should be simple.
-
-*Note:* There are many tutorials on how to install WSL and `conda` and so will not be covered here.
-
-Found mistakes, have suggestions or questions, [please submit an issue on GitHub](https://github.com/GiangLeN/Zymo-Mock-sequencing/issues).
-
-It is possible to view this documents locally or online at <https://gianglen.github.io/Zymo-Mock-sequencing/>.
-
-> :warning: **Large analysis**: Will consume huge amount of time, disk space and computational power.
-
-## Tutorials
-
-- [BGI-SEQ]()
-- [Nanopore]()
-
+bash
+Copy code
+emapper.py -i proteins.faa -o output_directory --cpu 4 --data_dir data_directory
+Conclusion
+In this tutorial, we have walked through the steps of processing BGI-seq metagenomic data, including quality control, trimming, host filtering, assembly, gene prediction, taxonomic classification
 
 There are several topics to be covered in multiple tutorials:
 
@@ -82,55 +92,6 @@ There are several topics to be covered in multiple tutorials:
 ## 1. Preparing sequencing data
 
 We are interested in sequencing data of zymoBIOMICS from different sequencer and project.
-
-### 1.1 zymoBIOMICS data on SRA
-
-| Project  | Sequencer | Samples | Files | Ref |
-|----------|-----------|---------|-------|-----|
-|PRJEB38036|BGI-SEQ    | 25      |       |     |
-
-
-### 1.2 Workflow to download SRAs 
-
-In this section, we will:
-
-- Search for Project on ENA
-- Extract *sra* download links
-
-
-
-
-
-
-### 1.2 Conda environments
-
-Through out this tutorial, different programs will be used.
-To avoid incompatibility causes by installing of these programs to the main environment, we will use `conda`.
-This program can install environment with specific tools/programs, and is great for reproducibility.
-
-To create an environment with specific name use this basic form:
-
-`conda create --name <environment_name> -c <channel> <tool1> <tool2>`
-
-Installing channel for the program can be found on [anaconda web page](https://anaconda.org).
-
-After the environment is installed, activate it using
-
-`conda activate <environment_name>`
-
-To exit and return to your previous environment:
-
-`conda deactivate`
-
-
-<details>
-  <summary>Install conda environment using yaml</summary>
-
-`conda env create -f <yaml_file_path>`
-    
-***Yaml files for this project are located at the `envs/` directory.***
-    
-</details>
 
 
 

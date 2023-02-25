@@ -12,7 +12,7 @@
 <meta name="author" content="Ngoc Giang Le" />
 
 
-<title>Sequencing analysis of the ZymoBIOMICS Mock community</title>
+<title>Taxonomic typing experiments</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1294,6 +1294,106 @@ ul.task-list{list-style: none;}
 
 
 
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #c4a000; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #000000; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #000000; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #000000; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 
 
 
@@ -1455,8 +1555,7 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">Sequencing analysis of the ZymoBIOMICS Mock
-community</h1>
+<h1 class="title toc-ignore">Taxonomic typing experiments</h1>
 <h4 class="author">Ngoc Giang Le</h4>
 
 </div>
@@ -1466,58 +1565,475 @@ community</h1>
 body {
 text-align: justify}
 </style>
-<div id="zymobiomics-mock-community" class="section level2">
-<h2>ZymoBIOMICS Mock Community</h2>
-<p>The <a href="https://zymoresearch.eu/collections/zymobiomics-microbial-community-standards">ZymoBIOMICS
-Mock Community</a> is a synthetic microbial community consists of 8
-bacterial and 2 yeast strains that are commonly found in environmental
-and human microbiomes. The concentration of these species are known.
-ZymoBIOMICS Mock Community is used as a positive control in microbiome
-studies to assess the accuracy, precision, and sensitivity of microbiome
-sequencing methods. It can also be used to compare results across
-different studies and sequencing platforms.</p>
+<p>The aim of this tutorial,</p>
+<p>Calculation method</p>
+<p>Optimise</p>
+<p>In this tutorial, we will use Bash and Snakemake to test and compare
+different taxonomic typing programs: Kraken2/Bracken vs Metaphlan3 and
+Metaphlan4.</p>
+<p>These programs use … look at the relative abundance of raw reads.</p>
+<p>The <a href="https://files.zymoresearch.com/datasheets/ds1706_zymobiomics_microbial_community_standards_data_sheet.pdf">ZymoMock</a>
+contains the following strains:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Species</th>
+<th>GC%</th>
+<th>Gram stain</th>
+<th>gDNA abund</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pseudomonas aeruginosa</td>
+<td>66.2</td>
+<td>-</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td>Escherichia coli</td>
+<td>56.8</td>
+<td>-</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td>Salmonella enterica</td>
+<td>52.2</td>
+<td>-</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td>Lactobacillus fermentum</td>
+<td>52.8</td>
+<td>+</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td>Enterococcus faecalis</td>
+<td>37.5</td>
+<td>+</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td>Staphylococcus aureus</td>
+<td>32.7</td>
+<td>+</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td>Listeria monocytogenes</td>
+<td>38.0</td>
+<td>+</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td>Bacillus subtilis</td>
+<td>43.8</td>
+<td>+</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td>Saccharomyces cerevisiae</td>
+<td>38.4</td>
+<td>Yeast</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td>Cryptococcus neoformans</td>
+<td>48.2</td>
+<td>Yeast</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>For this exercise, we also look at the effect of threads on the
+analysis time. We will be looking at accuracy and speed.</p>
+<div id="input-file" class="section level2">
+<h2>1. Input file</h2>
+<p>We will work inside the <code>bgi_pipeine</code> directory using the
+downloaded SRA sample ERR4097276 from <a href>previous
+tutorial</a>.</p>
+<pre><code># search for 
+echo ERR4097111 $(find ./01.trimmed/ -name &quot;ERR4097111*.gz&quot; | sort) | sed &#39;s/ /\t/g&#39; &gt; trimmed_samples.tsv
+</code></pre>
+<p>Edit <code>trimmed_samples.tsv</code> to have the header as follow.
+Note that the file is tab separated.</p>
+<table>
+<colgroup>
+<col width="11%" />
+<col width="44%" />
+<col width="44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>r1</th>
+<th>r2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ERR4097111</td>
+<td>./01.trimmed/ERR4097111_trimmed_1.fq.gz</td>
+<td>./01.trimmed/ERR4097111_trimmed_1.fq.gz</td>
+</tr>
+</tbody>
+</table>
+<div id="portion-sampling" class="section level3">
+<h3>1.1. Portion sampling</h3>
 </div>
-<div id="public-repositories-of-nucleotide-sequences" class="section level2">
-<h2>Public repositories of nucleotide sequences</h2>
-<p>The <a href="https://www.ncbi.nlm.nih.gov/sra">Sequence Read Archive
-(SRA)</a> and the <a href="https://www.ebi.ac.uk/ena/browser/home">European Nucleotide
-Archive (ENA)</a> are both public repositories of nucleotide sequence
-data. Both repositories store a wide range of nucleotide sequence data,
-including DNA, RNA, and protein sequences, from various organisms and
-sample types. Using publicly available data from SRA and ENA, we will
-download and build a metagenomic pipeline for re-analysis.</p>
 </div>
-<div id="aims" class="section level2">
-<h2>Aims</h2>
-<p>The tutorials will look at different tools and approaches and
-compared them for benchmark purposes. Codes, and scripts are also
-provided to tie various tools together. Our aim is to use these data to
-understand more about the sequencing method and optimize the pipeline.
-We hope to reproduce the original results as well as discover new
-findings.</p>
+<div id="snakefile-content" class="section level2">
+<h2>2. Snakefile content</h2>
+<p>Create a Snakefile called <code>test_tools_threads.skm</code>. The
+code here is identical to <a href>previous tutorial</a>, however we
+will be processing trimmed reads instead. Edit so that the input file is
+<code>trimmed_samples.tsv</code>.</p>
+<pre><code>import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep =&#39;\t&#39;).dropna().set_index(&quot;ID&quot;, drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample&#39;s name
+    return sample_df.loc[wildcards.sample, [col]]
+
+# Load input file
+_samples = parse_samples(&quot;trimmed_samples.tsv&quot;)
+
+nthreads = @
+</code></pre>
+<p>The code below will be used to investigate different factors.</p>
+<div id="krakenbracken" class="section level3">
+<h3>2.1. Kraken/Bracken</h3>
+<p>We will be using the standard database with the addition of protozoa
+and fungi.</p>
+<pre><code>rule all:
+    input:
+        # Final outcome
+        expand(&quot;raw_taxo/{sample}.bracken&quot;, sample = _samples.index)
+
+rule kraken_db:
+    output:
+        temp(&quot;databases/k2_pluspf_20220908.tar.gz&quot;)
+    params:
+        directory(&quot;databases&quot;)
+    shell:
+        &quot;&quot;&quot;
+        wget -P {params} https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20220908.tar.gz
+        &quot;&quot;&quot;
+
+rule kraken_unzip:
+    input:
+        &quot;databases/k2_pluspf_20220908.tar.gz&quot;
+    output:
+        &quot;databases/hash.k2d&quot;,
+        &quot;databases/opts.k2d&quot;,
+        &quot;databases/taxo.k2d&quot;,
+        &quot;databases/seqid2taxid.map&quot;,
+    params:
+        directory(&quot;databases&quot;)
+    shell:
+        &quot;&quot;&quot;
+        tar xf {input} -C {params}
+        &quot;&quot;&quot;
+        
+rule bracken:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, &#39;r1&#39;),
+        r2 = lambda wildcards: get_files(_samples, wildcards, &#39;r2&#39;),
+        kraken_db = &quot;databases/hash.k2d&quot;
+    output:
+        kraken = temp(&quot;raw_taxo/{sample}_{cores}.kraken2&quot;),
+        report = &quot;raw_taxo/{sample}_{cores}_kraken2.report&quot;,
+        bracken = &quot;raw_taxo/{sample}_{cores}.bracken&quot;
+    conda:
+        &quot;envs/krabraken.yaml&quot;
+    params:
+        db = &quot;databases&quot;,
+        confidence = 0.1
+    threads: nthreads
+    benchmark:
+        repeat(&quot;benchmarks/{sample}_{cores}_bracken.txt&quot;, 3)
+    log:
+        kraken = &quot;logs/{sample}_{cores}_raw_kraken.log&quot;,
+        bracken = &quot;logs/{sample}_{cores}_raw_bracken.log&quot;
+    shell:
+        &quot;&quot;&quot;
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {output.report} --confidence {params.confidence} --threads {threads} {input.r1} {input.r2} &gt; {output.kraken} 2&gt; {log.kraken}
+        bracken -d {params.db} -i {output.report} -l S -o {output.bracken} 2&gt; {log.bracken}
+        &quot;&quot;&quot;</code></pre>
 </div>
-<div id="preparation" class="section level2">
-<h2>Preparation</h2>
-<p>To get the most out of this, it is assumed that you have basic
-knowledge about the command lines, Bash, Python, R and anaconda.
-However, explanation of the codes are provided and so following along
-should be simple.</p>
-<p><em>Note:</em> There are many tutorials on how to install WSL and
-<code>conda</code> and so will not be covered here.</p>
-<p>Found mistakes, have suggestions or questions, <a href="https://github.com/GiangLeN/Zymo-Mock-sequencing/issues">please
-submit an issue on GitHub</a>.</p>
-<p>It is possible to view this documents locally or online at <a href="https://gianglen.github.io/Zymo-Mock-sequencing/" class="uri">https://gianglen.github.io/Zymo-Mock-sequencing/</a>.</p>
-<blockquote>
-<p>:warning: <strong>Large analysis</strong>: Will consume huge amount
-of time, disk space and computational power.</p>
-</blockquote>
+<div id="metaphlan3" class="section level3">
+<h3>2.2. Metaphlan3</h3>
+<p>For this test, we will use the database version
+<code>mpa_v31_CHOCOPhlAn_201901</code>.</p>
+<pre><code>rule metaphlan_setup:
+    output:
+        expand(&quot;databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2&quot;, set1=[1,2,3,4]),
+        expand(&quot;databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2&quot;, set2=[1,2]),
+    conda:
+        &quot;envs/metaphlan.yaml&quot;
+    params:
+        &quot;databases&quot;
+    shell:
+        &quot;&quot;&quot;
+        metaphlan --install --index mpa_v31_CHOCOPhlAn_201901 --bowtie2db {params}
+        &quot;&quot;&quot;
+
+rule metaphlan3:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, &#39;r1&#39;),
+        r2 = lambda wildcards: get_files(_samples, wildcards, &#39;r2&#39;),
+        mtp1 = expand(&quot;databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2&quot;, set1=[1,2,3,4]),
+        mtp2 = expand(&quot;databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2&quot;, set2=[1,2]),
+    output:
+        &quot;raw_taxo/{sample}_{cores}.metaphlan3&quot;,
+    conda:
+        &quot;envs/metaphlan.yaml&quot;
+    params:
+        bowtie2db = &quot;databases&quot;,
+        index = &quot;mpa_v31_CHOCOPhlAn_201901&quot;,
+        bw2 = &quot;raw_taxo/{sample}_{cores}.mp3.bw2.bz2&quot;,
+    log:
+        &quot;logs/{sample}_{cores}_metaphlan3.log&quot;
+    benchmark:
+        repeat(&quot;benchmarks/{sample}_{cores}_metaphlan3.txt&quot;, 3)
+    threads: nthreads
+    shell:
+        &quot;&quot;&quot;
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats &gt; {output} 2&gt; {log}
+        &quot;&quot;&quot;
+</code></pre>
 </div>
-<div id="tutorials" class="section level2">
-<h2>Tutorials</h2>
+<div id="metaphlan4" class="section level3">
+<h3>2.3. Metaphlan4</h3>
+<p>Metaphlan4 is the latest version, which claims to improve … We will
+put it to the test.</p>
+<pre><code>rule metaphlan4_setup:
+    output:
+        expand(&quot;databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l&quot;, set1=[1,2,3,4]),
+        expand(&quot;databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l&quot;, set2=[1,2]),
+    conda:
+        &quot;envs/metaphlan4.yaml&quot;
+    params:
+        &quot;databases&quot;
+    shell:
+        &quot;&quot;&quot;
+        metaphlan --install --index mpa_vJan21_CHOCOPhlAnSGB_202103 --bowtie2db {params}
+        &quot;&quot;&quot;
+
+rule metaphlan4:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, &#39;r1&#39;),
+        r2 = lambda wildcards: get_files(_samples, wildcards, &#39;r2&#39;),
+        mtp1 = expand(&quot;databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l&quot;, set1=[1,2,3,4]),
+        mtp2 = expand(&quot;databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l&quot;, set2=[1,2]),
+    output:
+        &quot;raw_taxo/{sample}_{cores}.metaphlan4&quot;,
+    conda:
+        &quot;envs/metaphlan4.yaml&quot;
+    params:
+        bowtie2db = &quot;databases&quot;,
+        index = &quot;mpa_vJan21_CHOCOPhlAnSGB_202103&quot;,
+        bw2 = &quot;raw_taxo/{sample}_{cores}.mp4.bw2.bz2&quot;,
+    benchmark:
+        repeat(&quot;benchmarks/{sample}_{cores}_metaphlan4.txt&quot;, 3)
+    log:
+        &quot;logs/{sample}_{cores}_metaphlan4.log&quot;
+    threads: nthreads
+    shell:
+        &quot;&quot;&quot;
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats &gt; {output} 2&gt; {log}
+        &quot;&quot;&quot;</code></pre>
+</div>
+<div id="rull-all" class="section level3">
+<h3>2.4. Rull all</h3>
+<pre><code>rule all:
+    input:
+        expand(&quot;taxa_process/{sample}_{cores}_bracken_values.txt&quot;, sample = _samples.index, cores = nthreads),
+        expand(&quot;taxa_process/{sample}_{cores}_metaphlan4_values.txt&quot;, sample = _samples.index, cores = nthreads),
+        expand(&quot;taxa_process/{sample}_{cores}_metaphlan3_values.txt&quot;, sample = _samples.index, cores = nthreads)
+</code></pre>
+</div>
+<div id="test-run" class="section level3">
+<h3>2.5. Test run</h3>
+<p>You can modify the <em>threads</em> parameter to speed up the
+run.</p>
+<p>Create a rule to process the newly generated bracken result. We want
+to modify the text</p>
+<pre><code>
+
+Pseudomonas_aeruginosa
+Escherichia_coli
+Salmonella_enterica
+Limosilactobacillus_fermentum
+Enterococcus_faecalis
+Staphylococcus_aureus
+Listeria_monocytogenes
+Bacillus_subtilis
+
+
+Saccharomyces_cerevisiae
+Cryptococcus_neoformans
+</code></pre>
+<p>Process &gt; sed space and remove low abundance &gt; search for
+aabundance awk -F” ‘$7&gt;“0.00000”’ ERR4097111_t12.bracken</p>
+<p>Species &gt; check abundance Genus &gt; check abundance</p>
+<pre><code>import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep =&#39;\t&#39;).dropna().set_index(&quot;ID&quot;, drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample&#39;s name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples(&quot;trimmed_samples.tsv&quot;)
+
+rule all:
+    input:
+        expand(&quot;raw_taxo/{sample}_t@.bracken&quot;, sample = _samples.index)
+
+rule bracken:
+    input:
+        # extract the forward (r1) and reverse (r2) reads
+        r1 = lambda wildcards: get_files(_samples, wildcards, &#39;r1&#39;),
+        r2 = lambda wildcards: get_files(_samples, wildcards, &#39;r2&#39;),
+        kraken_db = &quot;../databases/hash.k2d&quot;
+    output:
+        kraken = temp(&quot;raw_taxo/{sample}_t@.kraken2&quot;),
+        bracken = &quot;raw_taxo/{sample}_t@.bracken&quot;
+    conda:
+        &quot;../envs/krabraken.yaml&quot;
+    params:
+        db = &quot;../databases&quot;,
+        report = &quot;raw_taxo/{sample}_t@_kraken2.report&quot;,
+    threads: @
+    benchmark:
+        repeat(&quot;benchmark/{sample}_t@_bracken.txt&quot;, 3)
+    shell:
+        &quot;&quot;&quot;
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} &gt; {output.kraken}
+        bracken -d {params.db} -i {params.report} -l S -o {output.bracken}
+        &quot;&quot;&quot;</code></pre>
 <ul>
-<li><a href>BGI-SEQ</a></li>
-<li><a href>Nanopore</a></li>
+<li><code>benchmark</code> Rerun the rule 3 times Kraken produces more
+accurate result with <code>-confidence 0.1</code> setting.</li>
 </ul>
+<p><strong><em>Note:</em></strong> Since we are in a new environment,
+Snakemake re-install the <em>krabraken</em> environment for the
+rule.</p>
+<p>We need a script to modify the template Snakefile and run it. Create
+a bash script called <code>bracken_threads_test.sh</code></p>
+<pre><code>
+#!/bin/bash
+
+# Number of threads to be tested
+for i in 1 2 4 8 12; do
+        # Replace @ with a number
+        sed &quot;s/@/$i/g&quot; bracken_temp.skm &gt; snakeFile
+        # Run Snakemake
+        snakemake --snakefile snakeFile --cores $i --use-conda -r -p
+        # Remove file
+        rm snakeFile
+done
+
+</code></pre>
+<pre><code>
+awk &#39;{ id=FILENAME ; sub(/\..*/,&quot;&quot;,id) ; print id &quot;_&quot; $1 }&#39; *.txt  | awk -F&quot;_&quot; &#39;$4!=&quot;s&quot; {print $2,$4}&#39;
+</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="st">&quot;haha&quot;</span>)</span></code></pre></div>
+<pre><code>## [1] &quot;haha&quot;</code></pre>
+</div>
+<div id="running-kraken2bracken" class="section level3">
+<h3>Running Kraken2/Bracken</h3>
+<p>Let’s write rule to run the program.</p>
+<p>Note: Kraken loads in databases so for smaller input files it takes
+longer. Only when large raw file then kraken is faster.</p>
+<p>Snakemake script</p>
+<pre><code>rule all:
+    input:
+        expand(&quot;01.taxonomy/raw/{sample}_@.mp3.profile&quot;, sample = _samples.index),
+        expand(&quot;01.taxonomy/raw/{sample}_@.bracken&quot;, sample = _samples.index)
+Running script</code></pre>
+<p>The <code>samples.tsv</code> contains the following information.</p>
+<p>Analysis script</p>
+<p>Conclusion:</p>
+<p>(Rarefraction tutorial ???)</p>
+<p>Advance testing of snakemake</p>
+<p>different scripts</p>
+</div>
+</div>
+<div id="result" class="section level2">
+<h2>Result</h2>
+</div>
+<div id="the-accuracy-between-different-databases" class="section level2">
+<h2>The accuracy between different databases</h2>
+<p><a href="https://www.biostars.org/p/10756/" class="uri">https://www.biostars.org/p/10756/</a></p>
+<p><a href="https://software.cqls.oregonstate.edu/updates/metaphlan-3.0.14/index.md" class="uri">https://software.cqls.oregonstate.edu/updates/metaphlan-3.0.14/index.md</a></p>
+<p>Conda fix:</p>
+<p>Note:</p>
+<p>This was my fix to install metaphlan3 version 3.10</p>
+<p><code>vim ~/.condarc</code></p>
+<pre><code>channel_priority: disabled
+channels:
+  - conda-forge
+  - defaults
+</code></pre>
+<div id="split-the-fastq-pairs" class="section level3">
+<h3>Split the fastq pairs</h3>
+<p>The raw is around 4.5 Gb per pair, which we will split into 10
+sets.</p>
+<pre><code># Create conda environment
+conda create --name seqkit -c bioconda seqkit
+
+# Activate the environment
+conda activate seqkit
+
+# Split into 10 sets
+# To split based on number of reads replace -p 10 with -s &lt;number_of_reads&gt;
+seqkit split2 -1 ERR4097276.sra_1.fastq.gz -2 ERR4097276.sra_2.fastq.gz -p 10 -O ERR4097276 -f -e .gz
+
+conda deactivate
+</code></pre>
+<p>[image]</p>
+<pre><code>[INFO] flag -1/--read1 and -2/--read2 given, ignore: -
+[INFO] split seqs from ERR4097276.sra_1.fastq.gz and ERR4097276.sra_2.fastq.gz
+[INFO] split into 10 parts
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_001.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_002.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_003.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_004.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_005.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_006.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_007.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_008.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_009.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_010.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_001.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_002.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_003.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_004.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_005.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_006.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_007.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_008.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_009.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_010.fastq.gz</code></pre>
+</div>
 </div>
 
 
@@ -1569,7 +2085,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2,h3,h4",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {

@@ -1,0 +1,610 @@
+---
+layout: default
+title: "Taxonomic typing experiments"
+author: "Ngoc Giang Le"
+version: 0.1
+#bibliography:
+nav_order: 1
+description: "Taxonomic tutorial"
+permalink: /
+output:
+    html_document:
+      toc: true
+      toc_float: true
+      toc_depth: 3
+      fig_caption: true
+      highlight: tango
+---
+
+
+```{=html}
+<style>
+body {
+text-align: justify}
+</style>
+```
+
+
+The aim of this tutorial,
+
+Calculation method
+
+Optimise
+
+
+In this tutorial, we will use Bash and Snakemake to test and compare different taxonomic typing programs: Kraken2/Bracken vs Metaphlan3 and Metaphlan4.
+
+
+
+
+These programs use ...
+look at the relative abundance of raw reads.
+
+The [ZymoMock](https://files.zymoresearch.com/datasheets/ds1706_zymobiomics_microbial_community_standards_data_sheet.pdf) contains the following strains:  
+
+
+|Species                 |GC% |Gram stain|gDNA abund|
+|------------------------|----|----------|----------|
+|Pseudomonas aeruginosa  |66.2| -        |12        |
+|Escherichia coli        |56.8| -        |12        |
+|Salmonella enterica     |52.2| -        |12        |
+|Lactobacillus fermentum |52.8| +        |12        |
+|Enterococcus faecalis   |37.5| +        |12        |
+|Staphylococcus aureus   |32.7| +        |12        |
+|Listeria monocytogenes  |38.0| +        |12        |
+|Bacillus subtilis       |43.8| +        |12        |
+|Saccharomyces cerevisiae|38.4| Yeast    |2         |
+|Cryptococcus neoformans |48.2| Yeast    |2         |
+
+
+For this exercise, we also look at the effect of threads on the analysis time.
+We will be looking at accuracy and speed.
+
+
+## 1. Input file
+
+We will work inside the `bgi_pipeine` directory using the downloaded SRA sample ERR4097276 from [previous tutorial]().
+
+```
+# search for 
+echo ERR4097111 $(find ./01.trimmed/ -name "ERR4097111*.gz" | sort) | sed 's/ /\t/g' > trimmed_samples.tsv
+
+```
+
+Edit `trimmed_samples.tsv` to have the header as follow.
+Note that the file is tab separated.
+
+
+|ID        |r1                                     |r2                                     |
+|----------|---------------------------------------|---------------------------------------|
+|ERR4097111|./01.trimmed/ERR4097111_trimmed_1.fq.gz|./01.trimmed/ERR4097111_trimmed_1.fq.gz|
+
+
+## 2. Snakefile content
+
+Create a Snakefile called `test_tools_threads.skm`.
+The code here is identical to [previous tutorial](), however we will be processing trimmed reads instead.
+Edit so that the input file is `trimmed_samples.tsv`.
+
+```
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample's name
+    return sample_df.loc[wildcards.sample, [col]]
+
+# Load input file
+_samples = parse_samples("trimmed_samples.tsv")
+
+nthreads = @
+
+```
+
+### 2.4. Rull all
+
+We tell Snakemake, what outcome we are expecting.
+Remember this should be the first rule.
+Paste the rule accordingly.
+
+```
+rule all:
+    input:
+        expand("taxa_process/{sample}_{cores}_bracken_values.txt", sample = _samples.index, cores = nthreads),
+        expand("taxa_process/{sample}_{cores}_metaphlan4_values.txt", sample = _samples.index, cores = nthreads),
+        expand("taxa_process/{sample}_{cores}_metaphlan3_values.txt", sample = _samples.index, cores = nthreads)
+
+```
+
+The code below will be used to investigate different programs and number of threads.
+
+### 2.1. Kraken/Bracken 
+
+We will be using the standard database with the addition of protozoa and fungi.
+
+
+```
+rule kraken_db:
+    output:
+        temp("databases/k2_pluspf_20220908.tar.gz")
+    params:
+        directory("databases")
+    shell:
+        """
+        wget -P {params} https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20220908.tar.gz
+        """
+
+rule kraken_unzip:
+    input:
+        "databases/k2_pluspf_20220908.tar.gz"
+    output:
+        "databases/hash.k2d",
+        "databases/opts.k2d",
+        "databases/taxo.k2d",
+        "databases/seqid2taxid.map",
+    params:
+        directory("databases")
+    shell:
+        """
+        tar xf {input} -C {params}
+        """
+        
+rule bracken:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        kraken_db = "databases/hash.k2d"
+    output:
+        kraken = temp("raw_taxo/{sample}_{cores}.kraken2"),
+        report = "raw_taxo/{sample}_{cores}_kraken2.report",
+        bracken = "raw_taxo/{sample}_{cores}.bracken"
+    conda:
+        "envs/krabraken.yaml"
+    params:
+        db = "databases",
+        confidence = 0.1
+    threads: nthreads
+    benchmark:
+        repeat("benchmarks/{sample}_{cores}_bracken.txt", 3)
+    log:
+        kraken = "logs/{sample}_{cores}_raw_kraken.log",
+        bracken = "logs/{sample}_{cores}_raw_bracken.log"
+    shell:
+        """
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {output.report} --confidence {params.confidence} --threads {threads} {input.r1} {input.r2} > {output.kraken} 2> {log.kraken}
+        bracken -d {params.db} -i {output.report} -l S -o {output.bracken} 2> {log.bracken}
+        """
+```
+
+### 2.2. Metaphlan3
+
+For this test, we will use the database version `mpa_v31_CHOCOPhlAn_201901`.
+
+```
+rule metaphlan_setup:
+    output:
+        expand("databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        expand("databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+    conda:
+        "envs/metaphlan.yaml"
+    params:
+        "databases"
+    shell:
+        """
+        metaphlan --install --index mpa_v31_CHOCOPhlAn_201901 --bowtie2db {params}
+        """
+
+rule metaphlan3:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        mtp1 = expand("databases/mpa_v31_CHOCOPhlAn_201901.{set1}.bt2", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_v31_CHOCOPhlAn_201901.rev.{set2}.bt2", set2=[1,2]),
+    output:
+        "raw_taxo/{sample}_{cores}.metaphlan3",
+    conda:
+        "envs/metaphlan.yaml"
+    params:
+        bowtie2db = "databases",
+        index = "mpa_v31_CHOCOPhlAn_201901",
+        bw2 = "raw_taxo/{sample}_{cores}.mp3.bw2.bz2",
+    log:
+        "logs/{sample}_{cores}_metaphlan3.log"
+    benchmark:
+        repeat("benchmarks/{sample}_{cores}_metaphlan3.txt", 3)
+    threads: nthreads
+    shell:
+        """
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats > {output} 2> {log}
+        """
+
+```
+
+### 2.3. Metaphlan4
+
+Metaphlan4 is the latest version, which claims to improve ...
+We will put it to the test.
+
+
+```
+rule metaphlan4_setup:
+    output:
+        expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
+        expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
+    conda:
+        "envs/metaphlan4.yaml"
+    params:
+        "databases"
+    shell:
+        """
+        metaphlan --install --index mpa_vJan21_CHOCOPhlAnSGB_202103 --bowtie2db {params}
+        """
+
+rule metaphlan4:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        mtp1 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.{set1}.bt2l", set1=[1,2,3,4]),
+        mtp2 = expand("databases/mpa_vJan21_CHOCOPhlAnSGB_202103.rev.{set2}.bt2l", set2=[1,2]),
+    output:
+        "raw_taxo/{sample}_{cores}.metaphlan4",
+    conda:
+        "envs/metaphlan4.yaml"
+    params:
+        bowtie2db = "databases",
+        index = "mpa_vJan21_CHOCOPhlAnSGB_202103",
+        bw2 = "raw_taxo/{sample}_{cores}.mp4.bw2.bz2",
+    benchmark:
+        repeat("benchmarks/{sample}_{cores}_metaphlan4.txt", 3)
+    log:
+        "logs/{sample}_{cores}_metaphlan4.log"
+    threads: nthreads
+    shell:
+        """
+        if [[ -f {params.bw2} ]]; then
+            rm {params.bw2}
+        fi
+        metaphlan {input.r1},{input.r2} --bowtie2db {params.bowtie2db} --index {params.index} --nproc {threads} --input_type fastq --bowtie2out {params.bw2} -t rel_ab_w_read_stats > {output} 2> {log}
+        """
+```
+
+### 2.4. Rull all
+
+We tell Snakemake, what outcome we are expecting.
+Remember this should be the first rule.
+Paste the rule accordingly.
+
+```
+rule all:
+    input:
+        expand("taxa_process/{sample}_{cores}_bracken_values.txt", sample = _samples.index, cores = nthreads),
+        expand("taxa_process/{sample}_{cores}_metaphlan4_values.txt", sample = _samples.index, cores = nthreads),
+        expand("taxa_process/{sample}_{cores}_metaphlan3_values.txt", sample = _samples.index, cores = nthreads)
+
+```
+
+### 2.5. Test run
+
+This snakefile is used to test how fast each program runs at a given thread.
+Edit ***@*** from *nthreadreads=@* to 8.
+
+Lets run the analysis with
+
+`snakemake --snakefile test_tools_threads.skm --cores 8 --use-conda -r -p`
+
+The download of the database together with the analysis will take a long time.
+You can run a [small portion]() of the raw file instead to see the outcome.
+
+
+## 3. Result
+
+
+Create a rule to process the newly generated bracken result.
+We want to modify the text 
+
+
+
+```
+
+
+Pseudomonas_aeruginosa
+Escherichia_coli
+Salmonella_enterica
+Limosilactobacillus_fermentum
+Enterococcus_faecalis
+Staphylococcus_aureus
+Listeria_monocytogenes
+Bacillus_subtilis
+
+
+Saccharomyces_cerevisiae
+Cryptococcus_neoformans
+
+```
+
+Process > sed space and remove low abundance > search for aabundance
+awk -F"\t" '$7>"0.00000"'  ERR4097111_t12.bracken
+
+Species > check abundance
+Genus > check abundance
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample's name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("trimmed_samples.tsv")
+
+rule all:
+    input:
+        expand("raw_taxo/{sample}_t@.bracken", sample = _samples.index)
+
+rule bracken:
+    input:
+        # extract the forward (r1) and reverse (r2) reads
+        r1 = lambda wildcards: get_files(_samples, wildcards, 'r1'),
+        r2 = lambda wildcards: get_files(_samples, wildcards, 'r2'),
+        kraken_db = "../databases/hash.k2d"
+    output:
+        kraken = temp("raw_taxo/{sample}_t@.kraken2"),
+        bracken = "raw_taxo/{sample}_t@.bracken"
+    conda:
+        "../envs/krabraken.yaml"
+    params:
+        db = "../databases",
+        report = "raw_taxo/{sample}_t@_kraken2.report",
+    threads: @
+    benchmark:
+        repeat("benchmark/{sample}_t@_bracken.txt", 3)
+    shell:
+        """
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} > {output.kraken}
+        bracken -d {params.db} -i {params.report} -l S -o {output.bracken}
+        """
+```
+
+-   `benchmark` Rerun the rule 3 times
+Kraken produces more accurate result with `-confidence 0.1` setting.
+
+***Note:*** Since we are in a new environment, Snakemake re-install the *krabraken* environment for the rule.
+
+We need a script to modify the template Snakefile and run it.
+Create a bash script called `bracken_threads_test.sh`
+
+```
+
+#!/bin/bash
+
+# Number of threads to be tested
+for i in 1 2 4 8 12; do
+        # Replace @ with a number
+        sed "s/@/$i/g" bracken_temp.skm > snakeFile
+        # Run Snakemake
+        snakemake --snakefile snakeFile --cores $i --use-conda -r -p
+        # Remove file
+        rm snakeFile
+done
+
+
+```
+
+
+
+```
+
+awk '{ id=FILENAME ; sub(/\..*/,"",id) ; print id "_" $1 }' *.txt  | awk -F"_" '$4!="s" {print $2,$4}'
+
+```
+
+```{r}
+
+print ("haha")
+
+```
+
+
+### Running Kraken2/Bracken
+
+Let's write rule to run the program.
+
+
+
+Note: Kraken loads in databases so for smaller input files it takes longer.
+Only when large raw file then kraken is faster.
+
+
+Snakemake script
+
+```
+rule all:
+    input:
+        expand("01.taxonomy/raw/{sample}_@.mp3.profile", sample = _samples.index),
+        expand("01.taxonomy/raw/{sample}_@.bracken", sample = _samples.index)
+Running script
+```
+
+The `samples.tsv` contains the following information.
+
+
+Analysis script
+
+Conclusion:
+
+
+
+(Rarefraction tutorial ???)
+
+
+
+Advance testing of snakemake
+
+different scripts
+
+
+## Result
+
+
+## The accuracy between different databases
+
+
+
+
+
+https://www.biostars.org/p/10756/
+
+
+https://software.cqls.oregonstate.edu/updates/metaphlan-3.0.14/index.md
+
+
+
+
+Conda fix:
+
+
+Note:
+
+This was my fix to install metaphlan3 version 3.10
+
+`vim ~/.condarc`
+
+```
+channel_priority: disabled
+channels:
+  - conda-forge
+  - defaults
+
+```
+
+### Split the fastq pairs
+
+The raw is around 4.5 Gb per pair, which we will split into 10 sets.
+
+
+```
+# Create conda environment
+conda create --name seqkit -c bioconda seqkit
+
+# Activate the environment
+conda activate seqkit
+
+# Split into 10 sets
+# To split based on number of reads replace -p 10 with -s <number_of_reads>
+seqkit split2 -1 ERR4097276.sra_1.fastq.gz -2 ERR4097276.sra_2.fastq.gz -p 10 -O ERR4097276 -f -e .gz
+
+conda deactivate
+
+```
+
+[image]
+
+
+```
+[INFO] flag -1/--read1 and -2/--read2 given, ignore: -
+[INFO] split seqs from ERR4097276.sra_1.fastq.gz and ERR4097276.sra_2.fastq.gz
+[INFO] split into 10 parts
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_001.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_002.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_003.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_004.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_005.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_006.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_007.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_008.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_009.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_2.part_010.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_001.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_002.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_003.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_004.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_005.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_006.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_007.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_008.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_009.fastq.gz
+[INFO] write 5718873 sequences to file: ERR4097276/ERR4097276.sra_1.part_010.fastq.gz
+```
+

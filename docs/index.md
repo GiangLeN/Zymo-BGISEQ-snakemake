@@ -6,7 +6,7 @@ version: 0.1.1
 date:
 #bibliography:
 nav_order: 1
-description: "Snakemake tutorial to analyse metagenomics"
+description: "Snakemake tutorial to analyse metagenomics sequencing data"
 permalink: /
 output:
     html_document:
@@ -28,16 +28,16 @@ text-align: justify}
 
 ## ZymoBIOMICS Mock Community
 
-The [ZymoBIOMICS Mock Community](https://zymoresearch.eu/collections/zymobiomics-microbial-community-standards) is a synthetic microbial community with a known concentration.
-It consists of 8 bacterial strains and 2 yeast strains that are commonly found in environmental and human microbiomes.
-The Mock Community is used as a positive control in microbiome studies to assess the accuracy, precision, and sensitivity of microbiome sequencing methods
-It is also used to compare results across different studies and sequencing platforms.
+The [ZymoBIOMICS Mock Community](https://zymoresearch.eu/collections/zymobiomics-microbial-community-standards) is a synthetic microbial community consists of 8 bacterial and 2 yeast strains that are commonly found in environmental and human microbiomes.
+The concentration of these species are known.
+ZymoBIOMICS Mock Community is used as a positive control in microbiome studies to assess the accuracy, precision, and sensitivity of microbiome sequencing methods.
+It can also be used to compare results across different studies and sequencing platforms.
 
 ## Public repositories of nucleotide sequences
 
 The [Sequence Read Archive (SRA)](https://www.ncbi.nlm.nih.gov/sra) and the [European Nucleotide Archive (ENA)](https://www.ebi.ac.uk/ena/browser/home) are both public repositories of nucleotide sequence data.
-Both repositories store a wide range of nucleotide sequence data, including DNA, RNA, and protein sequences, from various organisms and sample types.
-Using publicly available data from SRA and ENA, we will download and build a metagenomic pipeline for re-analysis.
+Both repositories store a wide range of data such as DNA, RNA, and protein sequences from different organisms and sample types.
+Using publicly available data, we will download and build metagenomic pipelines.
 
 ## Aims
 
@@ -59,9 +59,19 @@ It is possible to view this documents locally or online at <https://gianglen.git
 
 > :warning: **Large analysis**: Will consume huge amount of time, disk space and computational power.
 
-## Tutorials
+## Projects with zymoMock
+
+| Project  | Sequencer | Samples | Files | Ref |
+|----------|-----------|---------|-------|-----|
+|PRJEB38036|BGI-SEQ    | 25      |       |     |
+
+
+## Metagenomic pipelines tutorials
 
 - [BGI-SEQ]()
 - [Nanopore]()
 
+## Small tutorial/tests
 
+- [ENA vs SRA](bgi_pipe/ENA_vs_SRA.html)
+- [Introduction to Snakemake]()
