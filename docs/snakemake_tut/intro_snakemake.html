@@ -12,7 +12,7 @@
 <meta name="author" content="Ngoc Giang Le" />
 
 
-<title>SRA or ENA for sequencing data?</title>
+<title>Intorduction to Snakemake</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1455,7 +1455,7 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">SRA or ENA for sequencing data?</h1>
+<h1 class="title toc-ignore">Intorduction to Snakemake</h1>
 <h4 class="author">Ngoc Giang Le</h4>
 
 </div>
@@ -1467,111 +1467,356 @@ text-align: justify}
 </style>
 <div id="introduction" class="section level2">
 <h2>1.1 Introduction</h2>
-<p>The NCBI Sequence Read Archive (SRA) and the European Nucleotide
-Archive (ENA) are two of the largest public repositories of
-high-throughput sequencing data. DNA, RNA, and protein sequences from
-different experiments are stored together with the metadata, which
-describe the sample information, sequencing methods, and experimental
-design. Various tools such as SRA-Tools and Kingfisher can be used to
-download data from these repositories. In this tutorial, we will compare
-these two tools and show you how to use them to download sequencing data
-from ENA and SRA.</p>
+<p>Snakemake is a workflow management system used in bioinformatics and
+data science. It allows users to write complex workflow in a simple way
+using syntax which specifies input, output, and commands to be executed.
+This makes it easy to write, organize, visualize and reproduce the
+workflow. Snakemake supports multiple programming languages. With its
+built-in support for parallelization and cluster computing, Snakemake
+makes it easy to scale up the analysis and/or use in the
+high-performance computing environments.</p>
 </div>
-<div id="web-browser" class="section level2">
-<h2>1.2 Web browser</h2>
-<p>To search for a project visit the web browser of SRA or ENA. For each
-of the record an unique accession number is given depending on the
-source database. SRA sample will start with <em>SRA</em> and for
-European Bioinformatics Institute will start with <em>ERR</em>.</p>
-<p>For this example we will use the project
-<strong><em>PRJEB38036</em></strong></p>
+<div id="setup-snakemake-environments" class="section level2">
+<h2>1.2 Setup Snakemake environments</h2>
+<p><em>Mamba</em> is the preferred way to install Snakemake as it’s
+solver is much faster than <em>conda</em>.</p>
+<pre><code># Install snakemake via mamba
+conda create --name snakemake -c conda-forge mamba
+
+# Activate environment
+conda activate snakemake
+
+# Use mamba to install snakemake
+# This tutorial use snakemake version 7.8.5
+mamba install -c conda-forge -c bioconda snakemake=7.8.5
+
+# Check snakemake version
+snakemake --version</code></pre>
 </div>
-<div id="setup-tools" class="section level2">
-<h2>1.3 Setup tools</h2>
-<p>Both Kingfisher and SRA-Tools can be installed using the conda
-package manager.</p>
-<div id="conda-environments" class="section level3">
-<h3>1.3.1 Conda environments</h3>
-<p>Through out this tutorial, different programs will be used. To avoid
-incompatibility causes by installing of these programs to the main
-environment, we will use <code>conda</code>. This program can install
-environment with specific tools/programs, and is great for
-reproducibility.</p>
-<p>To create an environment with specific name use this basic form:</p>
-<p><code>conda create --name &lt;environment_name&gt; -c &lt;channel&gt; &lt;tool1&gt; &lt;tool2&gt;</code></p>
-<p>Installing channel for the program can be found on <a href="https://anaconda.org">anaconda web page</a>.</p>
-<p>After the environment is installed, activate it using</p>
-<p><code>conda activate &lt;environment_name&gt;</code></p>
-<p>To exit and return to your previous environment:</p>
-<p><code>conda deactivate</code></p>
+<div id="snakemake-rules" class="section level2">
+<h2>1.3 Snakemake rules</h2>
+<p>Open your favorite editor and create a new file called
+<code>Snakefile</code>.</p>
+<p>Structure of a simplified Snakemake rule is as follow:</p>
+<pre><code>rule &lt;rule_name&gt;:
+    input:
+        &quot;input_file&quot;
+    output:
+        &quot;output_file&quot; 
+    shell:
+        &quot;&quot;&quot;
+        running commands
+        &quot;&quot;&quot;
+</code></pre>
+<div id="download-rule" class="section level3">
+<h3>1.3.1 Download rule</h3>
+<p>We will create a rule called <code>download</code> and use it to get
+ERR4097207 files.</p>
+<pre><code>rule download:
+    output:
+        &quot;ERR4097207_1.fastq.gz&quot;,
+        &quot;ERR4097207_2.fastq.gz&quot;
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        kingfisher get -r ERR4097207 -m ena-ftp
+        &quot;&quot;&quot;</code></pre>
+<p><a href="https://gianglen.github.io/Zymo-Mock-sequencing/bgi_pipe/ENA_vs_SRA.html">Comparison
+between Kingfisher and SRA-tools.</a><br />
+<a href="#alternative-method-to-download-ena">Alternative way to
+download from ENA.</a></p>
+<p>We also need to include a rule to specify the <em>final</em> outcome.
+It is possible to list the two files similar to the input above.
+However, we will use the function <strong><em>multiext(“Common_name”,
+“extension1”, “extension2”)</em></strong>.</p>
+<pre><code>rule all:
+    input:
+        multiext(&quot;ERR4097207&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)</code></pre>
+<p>Save and exit out of the editor.</p>
+<p>Lets break down the rule.</p>
+<ul>
+<li><code>input:</code> No input file and so was not specified.</li>
+<li><code>output:</code> File
+<strong><em>ERR4097207_1.fastq.gz</em></strong> and
+<strong><em>ERR4097207_2.fastq.gz</em></strong> expected as the
+outcome.</li>
+<li><code>shell:</code> Running commands/scripts.</li>
+<li><code>conda:</code> Conda environment to run the rule</li>
+</ul>
+<p>You might have noticed that we in the <code>snakemake</code>
+environment and <em>kingfisher</em> is not installed here. One option is
+to install <em>kingfisher</em> on to the same environment. However, we
+want to maintain a clean base environment and avoid program conflict
+causes by different packages. To solve this, we will tell Snakemake to
+build a new conda environment for the rule instead.<br />
+The yaml file contains tools and packages information.</p>
+<p>Create <em>envs/kingfisher.yaml</em> from scratch. You can use other
+text editor instead of Vim.</p>
+<pre><code>mkdir -p envs
+vim envs/kingfisher.yaml </code></pre>
+<p>Paste the text below and save the file.</p>
+<pre><code>name: kingfisher
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+ - kingfisher</code></pre>
 <details>
 <summary>
-Install conda environment using yaml
+Snakefile
 </summary>
-<p><code>conda env create -f &lt;yaml_file_path&gt;</code></p>
-<p><strong><em>Yaml files for this project are located at the
-<code>envs/</code> directory.</em></strong></p>
+<pre><code>rule all:
+    input:
+        multiext(&quot;ERR4097207&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+          
+rule download:
+    output:
+        &quot;ERR4097207_1.fastq.gz&quot;,
+        &quot;ERR4097207_2.fastq.gz&quot;
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        kingfisher get -r ERR4097207 -m ena-ftp
+        &quot;&quot;&quot;</code></pre>
+</details>
+<p>Start the pipeline with</p>
+<pre><code>snakemake --cores 1 --use-conda</code></pre>
+<p>We are running Snakemake locally, and so only use one core.</p>
+<blockquote>
+<p>Congratulation, you have successfully in using Snakemake to
+downloaded the first sample.</p>
+</blockquote>
+</div>
+<div id="download-multiple-files" class="section level3">
+<h3>1.3.2 Download multiple files</h3>
+<p>Snakemake is very efficient in processing multiple files. We need to
+to rewrite rules using wildcards. The SRA of interest is provided as a
+python list.</p>
+<pre><code>SRA = [&quot;ERR4097111&quot;, &quot;ERR4097109&quot;, &quot;ERR4097207&quot;]</code></pre>
+<p>In all the rules, the SRA’s name is replaced with
+<code>{sample}</code> variable.</p>
+<p>We will also upgrade our rule for additional settings</p>
+<pre><code>rule download:
+    output:
+        multiext(&quot;{sample}&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    threads: 3
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        kingfisher get -r {wildcards.sample} -f fastq.gz -m ena-ftp --check-md5sums --download-threads {threads}
+        &quot;&quot;&quot;</code></pre>
+<ul>
+<li><code>threads:</code> Number of threads for the rule. Default =
+1</li>
+<li><code>shell:</code> To use the variables in the command, we need to
+specify that we are running <code>{wildcards.sample}</code>.</li>
+</ul>
+<p>For rule <code>all</code>, we want the final output to be
+<code>{sample}_1.fastq.gz</code> and <code>{sample}_2.fastq.gz</code>.
+Here we need to specify that the value of <code>{sample}</code> comes
+from the SRA list from above.</p>
+<p><code>expand([&quot;{sample}_1.fastq.gz&quot;, &quot;{sample}_2.fastq.gz&quot;], sample = SRA)</code></p>
+<p>This means, we are looking for 6 files as the final outcome:</p>
+<ul>
+<li>ERR4097111_1.fastq.gz</li>
+<li>ERR4097111_2.fastq.gz</li>
+<li>ERR4097109_1.fastq.gz</li>
+<li>ERR4097109_2.fastq.gz</li>
+<li>ERR4097207_1.fastq.gz</li>
+<li>ERR4097207_2.fastq.gz</li>
+</ul>
+<details>
+<summary>
+Snakefile
+</summary>
+<pre><code>SRA = [&quot;ERR4097111&quot;, &quot;ERR4097109&quot;, &quot;ERR4097207&quot;]
+
+rule all:
+    input:
+        expand([&quot;{sample}_1.fastq.gz&quot;, &quot;{sample}_2.fastq.gz&quot;], sample = SRA)
+
+rule download:
+    output:
+        multiext(&quot;{sample}&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    threads: 3
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        kingfisher get -r {wildcards.sample} -f fastq.gz -m ena-ftp --check-md5sums --download-threads {threads}
+        &quot;&quot;&quot;</code></pre>
+</details>
+<p>Run Snakemake with 6 cores. Use the command <code>-r</code> (reason)
+to see why the rule was triggered and <code>-p</code> (print) to show
+running commands.</p>
+<pre><code>snakemake --cores 6 --use-conda -r -p</code></pre>
+<p>Snakemake detects the existent of the ERR4097207 files and only
+download the missing SRA instead. The number of parallel process depends
+on the number of cores provided. In our case two download rules can be
+ran at the same time. To avoid stressing out the NCBI server, reduce the
+number of input <em>cores</em> or increase the number of
+<em>threads</em>. Also, multiple cores will consume more computational
+power and huge amount of hard disk.</p>
+</div>
+<div id="download-from-input-file" class="section level3">
+<h3>1.3.3 Download from input file</h3>
+<p>We will update the <em>Snakemake</em> file further to download SRA
+from a file with accessions. This is the content of the file
+<code>accessions.txt</code>:</p>
+<pre><code>accession
+ERR4097268
+ERR4097269
+ERR4097270
+ERR4097271
+ERR4097272</code></pre>
+<p>First we need python packages to handle the input file. The following
+functions parse the file and extract the accessions.</p>
+<pre><code>import pandas as pd
+
+def parse_samples(accession_list):
+    # create pandas Dataframe.
+    # Remove empty entries
+    # set accession as index and do not remove the original accession column
+    return pd.read_csv(accession_list, sep =&#39;\t&#39;).dropna().set_index(&quot;accession&quot;, drop=False)
+
+_samples = parse_samples(&quot;accession.txt&quot;)
+</code></pre>
+<details>
+<summary>
+Snakefile
+</summary>
+<pre><code>import pandas as pd
+
+def parse_samples(accession_list):
+    return pd.read_csv(accession_list, sep =&#39;\t&#39;).dropna().set_index(&quot;accession&quot;, drop=False)
+
+_samples = parse_samples(&quot;accession.txt&quot;)
+
+rule all:
+    input:
+        expand([&quot;{sample}_1.fastq.gz&quot;, &quot;{sample}_2.fastq.gz&quot;], sample = _samples.index)
+
+rule download:
+    output:
+        multiext(&quot;{sample}&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    threads: 3
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        kingfisher get -r {wildcards.sample} -f fastq.gz -m ena-ftp --check-md5sums --download-threads {threads}
+        &quot;&quot;&quot;</code></pre>
 </details>
 </div>
-<div id="sra-tools" class="section level3">
-<h3>1.3.2 SRA-tools</h3>
-<pre><code>conda install -c bioconda sra-tools</code></pre>
-<p>To download data using SRA-Tools, you need to use the fasterq-dump
-command. Here’s an example of how to download multiple sequencing
-runs:</p>
-<pre><code>fasterq-dump --split-files &lt;ERR or SRA accessions&gt; --outdir sra_data</code></pre>
-<p>This command will download the data to a directory called
-<em>sra_data</em>.</p>
-<p>Lets test on one sample:</p>
-<pre><code>fasterq-dump --split-files ERR4097207 -O sra_data</code></pre>
-<p>The downloaded file is in fastq format.</p>
-<p>Check the first 10 lines from ERR4097207_1.fastq.</p>
-<p><code>head ERR4097207_1.fastq</code></p>
-<pre><code>@ERR4097207.1 1 length=100
-AAGGTCTTGCAGCGATTAAATTGCTGAAAAAAGAAGGCATCGTGACGCTGGGCACCGCCGTCTACAGCGCATCGCAGGGCCTGCTGGCGGCGCTGGCGGG
-+ERR4097207.1 1 length=100
-A&gt;ECEEFF&lt;DECE;AEEFBDE@85B==EBEEC49AD@DDBE@BE3CDAAE=&gt;EEBEFEDBC5FFBE82EDD?EFD&gt;CD=A?EAEFC=D&gt;=AADC7AAD?B
-@ERR4097207.2 2 length=100
-ACAACGCGGTTGATTAACACCATACCGGGAATGTTATCCATAAATTGCGCCAGTTCATCGTCACTCAATGCTTTTGAGTGAACAATCAACGCATTACAAC
-+ERR4097207.2 2 length=100
-FFFFFFFFFFFFFGFFGFFFG&gt;FFFGFFFFFFGFFFFFF@F@GEFGFFFGFFGEFFFFGFFFFFFFEFFGGFFEFFBGFFFGGFGGFFFAFFFGGFFFFG
-@ERR4097207.3 3 length=58
-CAATACATGTGTCACCTTTGCTACGCCTACGTTGATAACGCAACAATGACGTCCAACA</code></pre>
-<p>The header of the fastq is replaced with the accession number.</p>
+<div id="create-input-file-for-analysis" class="section level3">
+<h3>1.3.4 Create input file for analysis</h3>
+<p>Our next aim is to create a tab separated file called
+<code>sample.tsv</code> with the following structure for later analysis.
+This file contains <em>id</em> and the path for <em>forward</em> and
+<em>reverse</em> reads of the samples we want to process.</p>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>read1</th>
+<th>read2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ERR4097245</td>
+<td>path/ERR4097245_1.fastq.gz</td>
+<td>path/ERR4097245_2.fastq.gz</td>
+</tr>
+<tr class="even">
+<td>ERR4097111</td>
+<td>path/ERR4097111_1.fastq.gz</td>
+<td>path/ERR4097111_2.fastq.gz</td>
+</tr>
+<tr class="odd">
+<td>ERR4097243</td>
+<td>path/ERR4097243_1.fastq.gz</td>
+<td>path/ERR4097243_2.fastq.gz</td>
+</tr>
+</tbody>
+</table>
+<p>Lets create a rule to extract this information.</p>
+<pre><code>rule pipe_samples:
+    input:
+        multiext(&quot;{sample}&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+    output:
+        temp(&quot;00_raws/{sample}.txt&quot;)
+    shell:
+        &quot;&quot;&quot;
+        echo {wildcards.sample} $(realpath {input}) | sed &#39;s/ /\t/g&#39; &gt; {output}
+        &quot;&quot;&quot;</code></pre>
+<ul>
+<li><code>input</code>: The output from previous rule is used as the
+input</li>
+<li><code>output</code>: Write information to
+<em>00_raws/{sample}.txt</em>. Remove once the file is no longer
+used.</li>
+<li><code>shell</code>: Print the SRA name and the paths. Replace space
+with tab</li>
+</ul>
+<p>Update the rule <em>all</em> as follow:</p>
+<pre><code>rule all:
+    input:
+#        expand([&quot;00_raws/{sample}_1.fq.gz&quot;, &quot;00_raws/{sample}_2.fq.gz&quot;], sample = _samples.index),
+        expand(&quot;00_raws/{sample}.txt&quot;, sample = _samples.index)</code></pre>
+<p>Comment out the line will stop Snakemake from creating that output.
+In our case, since we already downloaded the files it would have no
+impact.</p>
+<p>Run Snakemake with</p>
+<pre><code>snakemake --cores 6 --use-conda -r -p</code></pre>
 </div>
-<div id="installing-kingfisher" class="section level3">
-<h3>1.3.3 Installing Kingfisher</h3>
-<p>Now we will install and try out kingfisher.</p>
-<pre><code>conda install -c bioconda kingfisher</code></pre>
-<p>Create directory to download the same ENA file.</p>
-<pre><code>mkdir ena_data
-cd ena_data
-kingfisher get -r ERR4097207 -m ena-ftp</code></pre>
-<p>Lets check the header of the file.</p>
-<pre><code>zcat ERR4097207_1.fastq.gz | head</code></pre>
-<pre><code>@ERR4097207.1 CL100062948L2C001R001_20/1
-AAGGTCTTGCAGCGATTAAATTGCTGAAAAAAGAAGGCATCGTGACGCTGGGCACCGCCGTCTACAGCGCATCGCAGGGCCTGCTGGCGGCGCTGGCGGG
-+
-A&gt;ECEEFF&lt;DECE;AEEFBDE@85B==EBEEC49AD@DDBE@BE3CDAAE=&gt;EEBEFEDBC5FFBE82EDD?EFD&gt;CD=A?EAEFC=D&gt;=AADC7AAD?B
-@ERR4097207.2 CL100062948L2C001R001_44/1
-ACAACGCGGTTGATTAACACCATACCGGGAATGTTATCCATAAATTGCGCCAGTTCATCGTCACTCAATGCTTTTGAGTGAACAATCAACGCATTACAAC
-+
-FFFFFFFFFFFFFGFFGFFFG&gt;FFFGFFFFFFGFFFFFF@F@GEFGFFFGFFGEFFFFGFFFFFFFEFFGGFFEFFBGFFFGGFGGFFFAFFFGGFFFFG
-@ERR4097207.3 CL100062948L2C001R001_46/1
-CAATACATGTGTCACCTTTGCTACGCCTACGTTGATAACGCAACAATGACGTCCAACA</code></pre>
-<p>The original header is retained along with the accession.</p>
+<div id="combine-results" class="section level3">
+<h3>1.3.5 Combine results</h3>
+<p>We need to group all the text files together into one file called
+<code>sample.tsv</code>.</p>
+<pre><code>rule final_samples:
+    input:
+        expand(&quot;00_raws/{sample}.txt&quot;, sample = _samples.index)
+    output:
+        &quot;sample.tsv&quot;
+    shell:
+        &quot;&quot;&quot;
+        cat {input} &gt; {output}
+        &quot;&quot;&quot;</code></pre>
+<p>The <code>expand</code> function in the input allows to combine all
+<em>00_raws/{sample},txt</em> together.</p>
+<p>Once again we update the rule <em>all</em>.</p>
+<pre><code>rule all:
+    input:
+        &quot;sample.tsv&quot;</code></pre>
+<p><em>Note:</em> It is possible to remove other lines from rule
+<code>all</code> and does not impact the pipeline at all. This is
+because, Snakemake looks at the final output and works backward to
+identify the input required for each rule. In the <em>final_samples</em>
+rule, the <em>sample</em> is already defined and so Snakemake can still
+trigger the required rules.</p>
+<p>Run Snakemake</p>
+<pre><code>snakemake --cores 6 --use-conda -r -p</code></pre>
+<blockquote>
+<p>Congratulation, you used Snakemake to download and process multiple
+files.</p>
+</blockquote>
+<p>Try too download other files. <a href="docs/bgi_pipe/accessions/PRJEB38036_mocks.txt">Here</a> is the
+full accessions list from the same project.</p>
 </div>
 </div>
-<div id="conclusion" class="section level2">
-<h2>1.4 Conclusion</h2>
-<p>Both Kingfisher and SRA-Tools are easy to use and capable of
-downloading data from ENA and SRA. However, there are some differences
-to consider when choosing which tool to use. For us kingfisher can
-download files in parallel and so much faster than SRA-tools. It also
-retains the original header and can be useful for some downstream
-analysis.</p>
-<p><a href="https://gianglen.github.io/Zymo-Mock-sequencing/">Back to
-main page</a></p>
+<div id="alternative-download-method-from-ena" class="section level2">
+<h2>Alternative download method from ENA</h2>
+<p>Coming soon</p>
 </div>
 
 

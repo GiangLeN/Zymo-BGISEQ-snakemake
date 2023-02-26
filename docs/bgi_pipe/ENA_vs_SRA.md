@@ -165,3 +165,6 @@ However, there are some differences to consider when choosing which tool to use.
 For us kingfisher can download files in parallel and so much faster than SRA-tools.
 It also retains the original header and can be useful for some downstream analysis.
 
+
+
+[Back to main page](https://gianglen.github.io/Zymo-Mock-sequencing/)

@@ -6,7 +6,7 @@ version: 0.1.1
 date:
 #bibliography:
 nav_order: 1
-description: "Snakemake tutorial to analyse metagenomics"
+description: "Snakemake tutorial to analyse BGI-seq metagenomics"
 permalink: /
 output:
     html_document:
@@ -27,7 +27,9 @@ text-align: justify}
 
 ## Introduction
 
-BGI-seq is a sequencing platform developed by the BGI (Beijing Genomics Institute) for whole genome sequencing and metagenomic analysis. In this tutorial, we will walk through the steps of processing metagenomic data generated from BGI-seq using a combination of software tools and pipelines.
+BGI-seq is a sequencing platform developed by the BGI (Beijing Genomics Institute) for whole genome sequencing and metagenomic analysis.
+
+In this tutorial, we will walk through the steps of processing metagenomic data generated from BGI-seq using a combination of software tools and pipelines.
 
 Preprocessing
 Quality Control
@@ -89,58 +91,7 @@ There are several topics to be covered in multiple tutorials:
 -   Reporting using R
 
 
-## 1. Preparing sequencing data
 
-We are interested in sequencing data of zymoBIOMICS from different sequencer and project.
-
-
-
-
-
-
-
-Create a new folder for the project.
-
-```
-mkdir bgi_download
-
-cd bgi_download
-```
-
-To download SRA from ncbi server, we need `sra-tools` from the *bioconda* channel.
-
-There are multiple ways to approach a problem.
-Similarly, there are many ways to download SRA samples
-
-The workflow/approach needs to be understood before setting up the pipeline with Snakemake.  
-
-We can create a new environment as so.
-
-`conda create --name sra-tools -c bioconda sra-tools`
-
-Activate the environment to run `sra-tools`.
-
-`conda activate sra-tools`
-
-Let's download the experimental run ERR4097245 from NCBI.
-
-```
-prefetch ERR4097245
-
-```
-
-Once completed, we can see `ERR4097245/ERR4097245.sra` as the downloaded file.
-Extract forward and reverse reads from the *sra* file.
-
-```
-fasterq-dump --split-files ERR4097245/ERR4097245.sra
-```
-Two newly generated files ***ERR4097245.sra_1.fastq*** and ***ERR4097245.sra_2.fastq*** correspond to forward and reverse, respectively.
-Compress these files with:
-
-```
-gzip ERR4097245.sra_1.fastq ERR4097245.sra_2.fastq
-```
 
 ### 1.4 Download workflow with Snakemake
 

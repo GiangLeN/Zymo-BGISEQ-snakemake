@@ -31,9 +31,9 @@ text-align: justify}
 The [ZymoBIOMICS Mock Community](https://zymoresearch.eu/collections/zymobiomics-microbial-community-standards) is a synthetic microbial community consists of 8 bacterial and 2 yeast strains that are commonly found in environmental and human microbiomes.
 The concentration of these species are known.
 ZymoBIOMICS Mock Community is used as a positive control in microbiome studies to assess the accuracy, precision, and sensitivity of microbiome sequencing methods.
-It can also be used to compare results across different studies and sequencing platforms.
+We are interested in zymoBIOMICS sequencing data from different sequencers and projects.
 
-## Public repositories of nucleotide sequences
+## Public repositories
 
 The [Sequence Read Archive (SRA)](https://www.ncbi.nlm.nih.gov/sra) and the [European Nucleotide Archive (ENA)](https://www.ebi.ac.uk/ena/browser/home) are both public repositories of nucleotide sequence data.
 Both repositories store a wide range of data such as DNA, RNA, and protein sequences from different organisms and sample types.
@@ -61,9 +61,9 @@ It is possible to view this documents locally or online at <https://gianglen.git
 
 ## Projects with zymoMock
 
-| Project  | Sequencer | Samples | Files | Ref |
-|----------|-----------|---------|-------|-----|
-|PRJEB38036|BGI-SEQ    | 25      |       |     |
+| Project  | Sequencer | Samples | Accessions | Ref |
+|----------|-----------|---------|------------|-----|
+|PRJEB38036|BGI-SEQ|36|[File](docs/bgi_pipe/accessions/PRJEB38036_mocks.txt)||
 
 
 ## Metagenomic pipelines tutorials
@@ -74,4 +74,4 @@ It is possible to view this documents locally or online at <https://gianglen.git
 ## Small tutorial/tests
 
 - [ENA vs SRA](bgi_pipe/ENA_vs_SRA.html)
-- [Introduction to Snakemake]()
+- [Introduction to Snakemake](snakemake_tut/intro_snakemake.html)
