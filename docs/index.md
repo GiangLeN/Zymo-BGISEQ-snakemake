@@ -63,7 +63,7 @@ It is possible to view this documents locally or online at <https://gianglen.git
 
 | Project  | Sequencer | Samples | Accessions | Ref |
 |----------|-----------|---------|------------|-----|
-|PRJEB38036|BGI-SEQ|36|[File](docs/bgi_pipe/accessions/PRJEB38036_mocks.txt)||
+|PRJEB38036|BGI-SEQ|36|[File](https://gianglen.github.io/Zymo-Mock-sequencing/accessions/PRJEB38036_mocks.txt)||
 
 
 ## Metagenomic pipelines tutorials

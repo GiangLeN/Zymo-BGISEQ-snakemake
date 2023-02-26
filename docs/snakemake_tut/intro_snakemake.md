@@ -406,7 +406,7 @@ snakemake --cores 6 --use-conda -r -p
 > Congratulation, you used Snakemake to download and process multiple files.
 
 Try too download other files.
-[Here](docs/bgi_pipe/accessions/PRJEB38036_mocks.txt) is the full accessions list from the same project. 
+[Here](https://gianglen.github.io/Zymo-Mock-sequencing/accessions/PRJEB38036_mocks.txt) is the full accessions list from the same project. 
 
 ## Alternative download method from ENA
 
