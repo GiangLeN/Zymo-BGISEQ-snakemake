@@ -1,0 +1,6 @@
+name: krabracken
+channels:
+  - bioconda
+dependencies:
+  - kraken2
+  - bracken

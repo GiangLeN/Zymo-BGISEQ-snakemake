@@ -25,7 +25,7 @@ text-align: justify}
 </style>
 ```
 
-## 1.1 Introduction
+## 1. Introduction
 
 The NCBI Sequence Read Archive (SRA) and the European Nucleotide Archive (ENA) are two of the largest public repositories of high-throughput sequencing data.
 DNA, RNA, and protein sequences from different experiments are stored together with the metadata, which describe the sample information, sequencing methods, and experimental design.
@@ -33,7 +33,7 @@ Various tools such as SRA-Tools and Kingfisher can be used to download data from
 In this tutorial, we will compare these two tools and show you how to use them to download sequencing data from ENA and SRA.
 
 
-## 1.2 Web browser
+## 2. Web browser
 
 To search for a project visit the web browser of SRA or ENA.
 For each of the record an unique accession number is given depending on the source database.
@@ -42,11 +42,11 @@ SRA sample will start with *SRA* and for European Bioinformatics Institute will 
 
 For this example we will use the project ***PRJEB38036***
 
-## 1.3 Setup tools
+## 3. Setup tools
 
 Both Kingfisher and SRA-Tools can be installed using the conda package manager.
 
-### 1.3.1 Conda environments
+### 3.1 Conda environments
 
 Through out this tutorial, different programs will be used.
 To avoid incompatibility causes by installing of these programs to the main environment, we will use `conda`.
@@ -78,7 +78,7 @@ To exit and return to your previous environment:
 
 
 
-### 1.3.2 SRA-tools
+### 3.2 SRA-tools
 
 ```
 conda install -c bioconda sra-tools
@@ -120,7 +120,7 @@ CAATACATGTGTCACCTTTGCTACGCCTACGTTGATAACGCAACAATGACGTCCAACA
 The header of the fastq is replaced with the accession number.
 
 
-### 1.3.3 Installing Kingfisher
+### 3.3 Installing Kingfisher
 
 Now we will install and try out kingfisher.
 
@@ -156,9 +156,10 @@ CAATACATGTGTCACCTTTGCTACGCCTACGTTGATAACGCAACAATGACGTCCAACA
 ```
 
 The original header is retained along with the accession.
+For downstream analysis, you will generate the same result as file downloaded via SRA-tools unless you modify the header.   
 
 
-## 1.4 Conclusion
+## 4. Conclusion
 
 Both Kingfisher and SRA-Tools are easy to use and capable of downloading data from ENA and SRA.
 However, there are some differences to consider when choosing which tool to use.
@@ -168,3 +169,8 @@ It also retains the original header and can be useful for some downstream analys
 
 
 [Back to main page](https://gianglen.github.io/Zymo-Mock-sequencing/)
+
+### Todo:
+*   Header modify for SRA
+*   Download and extract sam file
+

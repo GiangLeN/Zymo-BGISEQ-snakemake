@@ -1,0 +1,5 @@
+name: metaphlan
+channels:
+  - bioconda
+dependencies:
+  - metaphlan=3.1.0

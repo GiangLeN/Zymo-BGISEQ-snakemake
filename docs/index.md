@@ -66,12 +66,20 @@ It is possible to view this documents locally or online at <https://gianglen.git
 |PRJEB38036|BGI-SEQ|36|[File](https://gianglen.github.io/Zymo-Mock-sequencing/accessions/PRJEB38036_mocks.txt)||
 
 
-## Metagenomic pipelines tutorials
+## Metagenomic pipelines
 
-- [BGI-SEQ]()
-- [Nanopore]()
+- Coming Soon
 
-## Small tutorial/tests
+
+## Small tests/tutorials
 
 - [ENA vs SRA](bgi_pipe/ENA_vs_SRA.html)
 - [Introduction to Snakemake](snakemake_tut/intro_snakemake.html)
+
+
+### Todo:
+- [BGI-SEQ]()
+- [Nanopore]()
+- [Rarefraction]()
+- [Taxonomic comparison]()
+- [Short reads human removal]()

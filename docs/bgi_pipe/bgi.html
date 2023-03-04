@@ -12,7 +12,7 @@
 <meta name="author" content="Ngoc Giang Le" />
 
 
-<title>SRA or ENA for sequencing data?</title>
+<title>Sequencing analysis of the ZymoBIOMICS Mock community</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1455,7 +1455,8 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">SRA or ENA for sequencing data?</h1>
+<h1 class="title toc-ignore">Sequencing analysis of the ZymoBIOMICS Mock
+community</h1>
 <h4 class="author">Ngoc Giang Le</h4>
 
 </div>
@@ -1467,120 +1468,215 @@ text-align: justify}
 </style>
 <div id="introduction" class="section level2">
 <h2>1. Introduction</h2>
-<p>The NCBI Sequence Read Archive (SRA) and the European Nucleotide
-Archive (ENA) are two of the largest public repositories of
-high-throughput sequencing data. DNA, RNA, and protein sequences from
-different experiments are stored together with the metadata, which
-describe the sample information, sequencing methods, and experimental
-design. Various tools such as SRA-Tools and Kingfisher can be used to
-download data from these repositories. In this tutorial, we will compare
-these two tools and show you how to use them to download sequencing data
-from ENA and SRA.</p>
-</div>
-<div id="web-browser" class="section level2">
-<h2>2. Web browser</h2>
-<p>To search for a project visit the web browser of SRA or ENA. For each
-of the record an unique accession number is given depending on the
-source database. SRA sample will start with <em>SRA</em> and for
-European Bioinformatics Institute will start with <em>ERR</em>.</p>
-<p>For this example we will use the project
-<strong><em>PRJEB38036</em></strong></p>
-</div>
-<div id="setup-tools" class="section level2">
-<h2>3. Setup tools</h2>
-<p>Both Kingfisher and SRA-Tools can be installed using the conda
-package manager.</p>
-<div id="conda-environments" class="section level3">
-<h3>3.1 Conda environments</h3>
-<p>Through out this tutorial, different programs will be used. To avoid
-incompatibility causes by installing of these programs to the main
-environment, we will use <code>conda</code>. This program can install
-environment with specific tools/programs, and is great for
-reproducibility.</p>
-<p>To create an environment with specific name use this basic form:</p>
-<p><code>conda create --name &lt;environment_name&gt; -c &lt;channel&gt; &lt;tool1&gt; &lt;tool2&gt;</code></p>
-<p>Installing channel for the program can be found on <a href="https://anaconda.org">anaconda web page</a>.</p>
-<p>After the environment is installed, activate it using</p>
-<p><code>conda activate &lt;environment_name&gt;</code></p>
-<p>To exit and return to your previous environment:</p>
-<p><code>conda deactivate</code></p>
-<details>
-<summary>
-Install conda environment using yaml
-</summary>
-<p><code>conda env create -f &lt;yaml_file_path&gt;</code></p>
-<p><strong><em>Yaml files for this project are located at the
-<code>envs/</code> directory.</em></strong></p>
-</details>
-</div>
-<div id="sra-tools" class="section level3">
-<h3>3.2 SRA-tools</h3>
-<pre><code>conda install -c bioconda sra-tools</code></pre>
-<p>To download data using SRA-Tools, you need to use the fasterq-dump
-command. Here’s an example of how to download multiple sequencing
-runs:</p>
-<pre><code>fasterq-dump --split-files &lt;ERR or SRA accessions&gt; --outdir sra_data</code></pre>
-<p>This command will download the data to a directory called
-<em>sra_data</em>.</p>
-<p>Lets test on one sample:</p>
-<pre><code>fasterq-dump --split-files ERR4097207 -O sra_data</code></pre>
-<p>The downloaded file is in fastq format.</p>
-<p>Check the first 10 lines from ERR4097207_1.fastq.</p>
-<p><code>head ERR4097207_1.fastq</code></p>
-<pre><code>@ERR4097207.1 1 length=100
-AAGGTCTTGCAGCGATTAAATTGCTGAAAAAAGAAGGCATCGTGACGCTGGGCACCGCCGTCTACAGCGCATCGCAGGGCCTGCTGGCGGCGCTGGCGGG
-+ERR4097207.1 1 length=100
-A&gt;ECEEFF&lt;DECE;AEEFBDE@85B==EBEEC49AD@DDBE@BE3CDAAE=&gt;EEBEFEDBC5FFBE82EDD?EFD&gt;CD=A?EAEFC=D&gt;=AADC7AAD?B
-@ERR4097207.2 2 length=100
-ACAACGCGGTTGATTAACACCATACCGGGAATGTTATCCATAAATTGCGCCAGTTCATCGTCACTCAATGCTTTTGAGTGAACAATCAACGCATTACAAC
-+ERR4097207.2 2 length=100
-FFFFFFFFFFFFFGFFGFFFG&gt;FFFGFFFFFFGFFFFFF@F@GEFGFFFGFFGEFFFFGFFFFFFFEFFGGFFEFFBGFFFGGFGGFFFAFFFGGFFFFG
-@ERR4097207.3 3 length=58
-CAATACATGTGTCACCTTTGCTACGCCTACGTTGATAACGCAACAATGACGTCCAACA</code></pre>
-<p>The header of the fastq is replaced with the accession number.</p>
-</div>
-<div id="installing-kingfisher" class="section level3">
-<h3>3.3 Installing Kingfisher</h3>
-<p>Now we will install and try out kingfisher.</p>
-<pre><code>conda install -c bioconda kingfisher</code></pre>
-<p>Create directory to download the same ENA file.</p>
-<pre><code>mkdir ena_data
-cd ena_data
-kingfisher get -r ERR4097207 -m ena-ftp</code></pre>
-<p>Lets check the header of the file.</p>
-<pre><code>zcat ERR4097207_1.fastq.gz | head</code></pre>
-<pre><code>@ERR4097207.1 CL100062948L2C001R001_20/1
-AAGGTCTTGCAGCGATTAAATTGCTGAAAAAAGAAGGCATCGTGACGCTGGGCACCGCCGTCTACAGCGCATCGCAGGGCCTGCTGGCGGCGCTGGCGGG
-+
-A&gt;ECEEFF&lt;DECE;AEEFBDE@85B==EBEEC49AD@DDBE@BE3CDAAE=&gt;EEBEFEDBC5FFBE82EDD?EFD&gt;CD=A?EAEFC=D&gt;=AADC7AAD?B
-@ERR4097207.2 CL100062948L2C001R001_44/1
-ACAACGCGGTTGATTAACACCATACCGGGAATGTTATCCATAAATTGCGCCAGTTCATCGTCACTCAATGCTTTTGAGTGAACAATCAACGCATTACAAC
-+
-FFFFFFFFFFFFFGFFGFFFG&gt;FFFGFFFFFFGFFFFFF@F@GEFGFFFGFFGEFFFFGFFFFFFFEFFGGFFEFFBGFFFGGFGGFFFAFFFGGFFFFG
-@ERR4097207.3 CL100062948L2C001R001_46/1
-CAATACATGTGTCACCTTTGCTACGCCTACGTTGATAACGCAACAATGACGTCCAACA</code></pre>
-<p>The original header is retained along with the accession. For
-downstream analysis, you will generate the same result as file
-downloaded via SRA-tools unless you modify the header.</p>
-</div>
-</div>
-<div id="conclusion" class="section level2">
-<h2>4. Conclusion</h2>
-<p>Both Kingfisher and SRA-Tools are easy to use and capable of
-downloading data from ENA and SRA. However, there are some differences
-to consider when choosing which tool to use. For us kingfisher can
-download files in parallel and so much faster than SRA-tools. It also
-retains the original header and can be useful for some downstream
+<p>BGI-seq is a sequencing platform developed by the BGI (Beijing
+Genomics Institute) for whole genome sequencing and metagenomic
 analysis.</p>
-<p><a href="https://gianglen.github.io/Zymo-Mock-sequencing/">Back to
-main page</a></p>
-<div id="todo" class="section level3">
-<h3>Todo:</h3>
-<ul>
-<li>Header modify for SRA</li>
-<li>Download and extract sam file</li>
-</ul>
+<p>In this tutorial, we will walk through the steps of creating a
+Snakemake pipeline to process metagenomic data generated from
+BGI-seq.</p>
 </div>
+<div id="preprocessing" class="section level2">
+<h2>2. Preprocessing</h2>
+<p>Create a new directory for this analysis.</p>
+<pre><code>mkdir bgi_pipeline
+cd bgi_pipeline</code></pre>
+<p>We will use the output <code>sample.tsv</code> from previous <a href="https://gianglen.github.io/Zymo-Mock-sequencing/snakemake_tut/intro_snakemake.html">tutorial</a>
+for this analysis.</p>
+<p>The input file contains <em>id</em> and the paths of <em>read1</em>
+and <em>read2</em>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>read1</th>
+<th>read2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ERR4097245</td>
+<td>path/ERR4097245_1.fastq.gz</td>
+<td>path/ERR4097245_2.fastq.gz</td>
+</tr>
+<tr class="even">
+<td>ERR4097111</td>
+<td>path/ERR4097111_1.fastq.gz</td>
+<td>path/ERR4097111_2.fastq.gz</td>
+</tr>
+<tr class="odd">
+<td>ERR4097243</td>
+<td>path/ERR4097243_1.fastq.gz</td>
+<td>path/ERR4097243_2.fastq.gz</td>
+</tr>
+</tbody>
+</table>
+<p>Move <code>sample.tsv</code> to the newly created directory.</p>
+<p>Open a text editor to create a new <em>Snakefile</em>. The following
+functions parse the file and extract the forward and reverse reads of
+the sample.</p>
+<pre><code>import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep =&#39;\t&#39;).dropna().set_index(&quot;id&quot;, drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample&#39;s name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples(&quot;sample.tsv&quot;)
+</code></pre>
+</div>
+<div id="quality-control" class="section level2">
+<h2>3. Quality Control</h2>
+<p>The first step in processing BGI-seq metagenomic data is to perform
+quality control on the raw reads. This is typically done using FastQC.
+However, there are quite a few samples and we want to automate the
+process. We will use fastp as it can detect and remove adapter sequences
+and trim the low-quality reads. Information regarding the raw and
+filtered sample are also provided and can be extracted. Any reads below
+60 bp are removed as recommend by BGI.</p>
+<pre><code>rule trimming:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, &quot;read1&quot;),
+        r2 = lambda wildcards: get_files(_samples, wildcards, &quot;read2&quot;)
+    output:
+        r1_trim = &quot;01_trimmed/{sample}_trimmed_1.fq.gz&quot;,
+        r2_trim = &quot;01_trimmed/{sample}_trimmed_2.fq.gz&quot;,
+        json = &quot;01_trimmed/{sample}_trimmed.json&quot;,
+        html = &quot;01_trimmed/{sample}_trimmed.html&quot;
+    threads: 3
+    params:
+        min_length = 60
+    conda:
+        &quot;envs/fastp.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        fastp --detect_adapter_for_pe -w {threads} -i {input.r1} -I {input.r2} -o {output.r1_trim} -O {output.r2_trim} --n_base_limit 0 --cut_front --cut_tail --length_required {params.min_length} -j {output.json} -h {output.html}
+        &quot;&quot;&quot;
+
+rule readsCheck:
+    input:
+        &quot;01_trimmed/{sample}_trimmed.json&quot;,
+    output:
+        &quot;reads_status/{sample}_01_trimming.txt&quot;
+    shell:
+        &quot;&quot;&quot;
+        echo sample:{wildcards.sample} &gt; {output}
+        grep -w &quot;before_filtering&quot; {input} -A1 | grep &quot;total_reads&quot; | tr -d &#39;\t&quot;, &#39; &gt;&gt; {output}
+        grep &quot;filtering_result&quot; {input} -A5 | sed &#39;1d&#39; | tr -d &#39;\t&quot;, &#39; &gt;&gt; {output}
+        &quot;&quot;&quot;</code></pre>
+</div>
+<div id="host-filtering" class="section level2">
+<h2>4. Host Filtering</h2>
+<p>Any contamination reads from human must be removed. This can be done
+using tools such as Bowtie or BWA to align the reads to a reference
+genome of the host organism. Mapped read can then be removed. This will
+improve on the assembly down stream and reduce the computational
+power.</p>
+<p>bash Copy code bowtie2-build host_genome.fa host_genome_index bowtie2
+-x host_genome_index -1 input_file_R1.fastq.gz -2 input_file_R2.fastq.gz
+-S host_aligned.sam samtools view -bS host_aligned.sam | samtools sort
+-o host_aligned.bam samtools index host_aligned.bam samtools view -bS -f
+12 -F 256 host_aligned.bam &gt; non_host.bam Assembly Co-assembly After
+preprocessing, we can perform assembly of the metagenomic data using
+software tools such as MEGAHIT or IDBA-UD. Co-assembly of multiple
+samples can be performed to improve the quality and completeness of the
+resulting contigs.</p>
+<p>bash Copy code megahit -1 input_file_R1.fastq.gz -2
+input_file_R2.fastq.gz -o output_directory Gene Prediction After
+assembly, we can predict the genes present in the metagenomic data using
+tools such as Prodigal or MetaGeneMark. This can provide information on
+the functional content of the metagenome.</p>
+<p>bash Copy code prodigal -i contigs.fa -o genes.faa -a proteins.fna -p
+meta Taxonomic Classification After predicting genes, we may want to
+assign taxonomic classifications to the genes and contigs using software
+tools such as Kraken or MetaPhlAn. This can provide insight into the
+taxonomic composition of the metagenomic data.</p>
+<p>bash Copy code kraken2 –db database –threads 4 –output output_file
+–report report_file genes.faa Functional Annotation After assigning
+taxonomic classifications, we can annotate the functions of the
+predicted genes using software tools such as eggNOG-mapper or KEGG. This
+can provide insight into the functional content of the metagenomic
+data.</p>
+<p>bash Copy code emapper.py -i proteins.faa -o output_directory –cpu 4
+–data_dir data_directory Conclusion In this tutorial, we have walked
+through the steps of processing BGI-seq metagenomic data, including
+quality control, trimming, host filtering, assembly, gene prediction,
+taxonomic classification</p>
+<p>There are several topics to be covered in multiple tutorials:</p>
+<ul>
+<li>Setup environment to run programs</li>
+<li>Download data from NCBI</li>
+<li>Metagenomic workflow</li>
+<li>Build metagenomic pipelines using Snakemake</li>
+<li>Reporting using R</li>
+</ul>
+<p>Use the following rules to download kraken2 database from the index
+zone (citation).</p>
+<blockquote>
+<p>Warning: This database is over 60 GB of space</p>
+</blockquote>
+<pre><code>rule kraken_db:
+    output:
+        temp(&quot;databases/k2_standard_20220607.tar.gz&quot;)
+    params:
+        directory(&quot;databases&quot;)
+    shell:
+        &quot;&quot;&quot;
+        wget -P {params} https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20220607.tar.gz
+        &quot;&quot;&quot;
+
+rule kraken_unzip:
+    input:
+        &quot;databases/k2_standard_20220607.tar.gz&quot;
+    output:
+        &quot;databases/hash.k2d&quot;,
+        &quot;databases/opts.k2d&quot;,
+        &quot;databases/taxo.k2d&quot;,
+        &quot;databases/seqid2taxid.map&quot;,
+    params:
+        directory(&quot;databases&quot;)
+    shell:
+        &quot;&quot;&quot;
+        tar xf {input} -C {params}
+        &quot;&quot;&quot;</code></pre>
+<p>The rules above download the kraken/bracken database to the folder
+called <code>databases</code> and extract it. Once done the zipped
+<em>tar</em> file is removed.</p>
+<pre><code>rule all:
+  input:
+  expand(&quot;01.taxonomy/raw/{sample}.bracken&quot;, sample = _samples.index)
+
+rule bracken:
+  input:
+  # extract the forward (r1) and reverse (r2) reads
+  r1 = lambda wildcards: get_files(_samples, wildcards, &#39;r1&#39;),
+r2 = lambda wildcards: get_files(_samples, wildcards, &#39;r2&#39;),
+kraken_db = &quot;database/hash.k2d&quot;
+output:
+  kraken = temp(&quot;01.taxonomy/raw/{sample}.kraken2&quot;),
+bracken = &quot;01.taxonomy/raw/{sample}.bracken&quot;
+threads: 80
+conda:
+  &quot;envs/krabraken.yaml&quot;
+params:
+  db = &quot;database&quot;,
+report = &quot;01.taxonomy/raw/{sample}_kraken2.report&quot;,
+shell:
+  &quot;&quot;&quot;
+        kraken2 --use-names --gzip-compressed --db {params.db} --report {params.report} --confidence 0.1 --threads {threads} {input.r1} {input.r2} &gt; {output.kraken}
+        bracken -d {params.db} -i {params.report} -l S -o {output.bracken}</code></pre>
+<p>This group of tutorial aims to show how to use snakemake for
+reproducible research.</p>
+<p>Accuracy, time and speed</p>
+<p>fastq to check for raw reads</p>
+<p>Assembly SPADES vs MEGAHIT</p>
+<p>Build the pipeline over time</p>
+<p>Use the wrapper <code>temp()</code> to tell Snakemake to remove the
+intermediate output. The file is removed at the end of the run.</p>
 </div>
 
 

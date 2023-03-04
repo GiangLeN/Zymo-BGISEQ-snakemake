@@ -25,27 +25,104 @@ text-align: justify}
 </style>
 ```
 
-## Introduction
+## 1. Introduction
 
 BGI-seq is a sequencing platform developed by the BGI (Beijing Genomics Institute) for whole genome sequencing and metagenomic analysis.
 
-In this tutorial, we will walk through the steps of processing metagenomic data generated from BGI-seq using a combination of software tools and pipelines.
+In this tutorial, we will walk through the steps of creating a Snakemake pipeline to process metagenomic data generated from BGI-seq.
 
-Preprocessing
-Quality Control
-The first step in processing BGI-seq metagenomic data is to perform quality control on the raw reads. This is typically done using software tools such as FastQC, which generates quality reports and identifies potential issues with the sequencing data.
+## 2. Preprocessing
 
-bash
-Copy code
-fastqc -o output_directory input_file.fastq.gz
-Trimming
-After performing quality control, we may want to trim the raw reads to remove low-quality regions and adapter sequences. This can be done using software tools such as Trimmomatic or Cutadapt.
+Create a new directory for this analysis.
 
-bash
-Copy code
-trimmomatic PE -phred33 input_file_R1.fastq.gz input_file_R2.fastq.gz output_file_R1.fastq.gz output_file_R2.fastq.gz ILLUMINACLIP:adapter_file.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
-Host Filtering
-If we are interested in analyzing the microbial content of a sample, we may want to remove any reads that originate from the host organism. This can be done using tools such as Bowtie or BWA to align the reads to a reference genome of the host organism.
+```
+mkdir bgi_pipeline
+cd bgi_pipeline
+```
+
+We will use the output `sample.tsv` from previous [tutorial](https://gianglen.github.io/Zymo-Mock-sequencing/snakemake_tut/intro_snakemake.html) for this analysis.
+
+The input file contains *id* and the paths of *read1* and *read2*.
+
+|id          |read1                       |read2                       |
+|------------|----------------------------|----------------------------|
+| ERR4097245 | path/ERR4097245_1.fastq.gz | path/ERR4097245_2.fastq.gz |
+| ERR4097111 | path/ERR4097111_1.fastq.gz | path/ERR4097111_2.fastq.gz |
+| ERR4097243 | path/ERR4097243_1.fastq.gz | path/ERR4097243_2.fastq.gz |
+
+Move `sample.tsv` to the newly created directory.
+
+Open a text editor to create a new *Snakefile*.
+The following functions parse the file and extract the forward and reverse reads of the sample.
+
+```
+import pandas as pd
+
+def parse_samples(samples_tsv):
+    # Load in tab separate file
+    # Remove samples with incomplete fields
+    # Set ID as the index
+    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("id", drop=False)
+
+def get_files(sample_df, wildcards, col):
+    # Return forward and reverse reads based on the sample's name
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples("sample.tsv")
+
+```
+
+## 3. Quality Control
+
+The first step in processing BGI-seq metagenomic data is to perform quality control on the raw reads.
+This is typically done using FastQC.
+However, there are quite a few samples and we want to automate the process.
+We will use fastp as it can detect and remove adapter sequences and trim the low-quality reads.
+Information regarding the raw and filtered sample are also provided and can be extracted.
+Any reads below 60 bp are removed as recommend by BGI.
+
+```
+rule trimming:
+    input:
+        r1 = lambda wildcards: get_files(_samples, wildcards, "read1"),
+        r2 = lambda wildcards: get_files(_samples, wildcards, "read2")
+    output:
+        r1_trim = "01_trimmed/{sample}_trimmed_1.fq.gz",
+        r2_trim = "01_trimmed/{sample}_trimmed_2.fq.gz",
+        json = "01_trimmed/{sample}_trimmed.json",
+        html = "01_trimmed/{sample}_trimmed.html"
+    threads: 3
+    params:
+        min_length = 60
+    conda:
+        "envs/fastp.yaml"
+    shell:
+        """
+        fastp --detect_adapter_for_pe -w {threads} -i {input.r1} -I {input.r2} -o {output.r1_trim} -O {output.r2_trim} --n_base_limit 0 --cut_front --cut_tail --length_required {params.min_length} -j {output.json} -h {output.html}
+        """
+
+rule readsCheck:
+    input:
+        "01_trimmed/{sample}_trimmed.json",
+    output:
+        "reads_status/{sample}_01_trimming.txt"
+    shell:
+        """
+        echo sample:{wildcards.sample} > {output}
+        grep -w "before_filtering" {input} -A1 | grep "total_reads" | tr -d '\t", ' >> {output}
+        grep "filtering_result" {input} -A5 | sed '1d' | tr -d '\t", ' >> {output}
+        """
+```
+
+## 4. Host Filtering
+
+Any contamination reads from human must be removed.
+This can be done using tools such as Bowtie or BWA to align the reads to a reference genome of the host organism.
+Mapped read can then be removed.
+This will improve on the assembly down stream and reduce the computational power.
+
+
+
 
 bash
 Copy code
@@ -93,480 +170,6 @@ There are several topics to be covered in multiple tutorials:
 
 
 
-### 1.4 Download workflow with Snakemake
-
-Now that we know about the workflow, we will use Snakemake to help us to download and process SRA files.
-Snakemake is a workflow management system for reproducible and scalable data analyses.
-
-#### 1.4.1 Snakemake environments
-
-*Mamba* is the preferred way to install Snakemake as it's solver is much faster than *conda*.
-
-```
-# Install snakemake via mamba
-conda create --name snakemake -c conda-forge mamba
-
-# Activate environment
-conda activate snakemake
-
-# Use mamba to install snakemake
-# This tutorial use snakemake version 7.8.5
-mamba install -c conda-forge -c bioconda snakemake=7.8.5
-
-# Check snakemake version
-snakemake --version
-```
-
-#### 1.4.2 Snakemake rules
-
-Open your favorite editor and create a new file called `Snakefile`.
-
-A simple Snakemake rule is as follow:
-
-```
-rule <rule_name>:
-    input:
-        "input_file"
-    output:
-        "output_file" 
-    shell:
-        """
-        running commands
-        """
-
-```
-
-#### 1.4.3 Download rule
-
-We will create a rule called `download` and use it to get ERR4097245 file.
-
-
-```
-rule download:
-    output:
-        "ERR4097245/ERR4097245.sra" 
-    shell:
-        """
-        prefetch -f yes ERR4097245
-        """
-```
-
-Lets break down the rule above.  
-
--   `input:` No input file and so was not specified.
--   `output:` File ***ERR4097245/ERR4097245.sra*** expected as the outcome (same as workflow).
--   `shell:` Running commands/scripts. The `-f yes` tells *sra-tools* to force download the file.
-
-
-We also need to include a rule to specify the *final* outcome.
-
-```
-rule all:
-    input:
-        "ERR4097245/ERR4097245.sra"
-```
-
-Save and exit out of the editor.
-
-
-<details>
-  <summary>Snakefile</summary>
-  
-```
-rule all:
-    input:
-        "ERR4097245/ERR4097245.sra"
-          
-rule download:
-    output:
-        "ERR4097245/ERR4097245.sra" 
-    shell:
-        """
-        prefetch -f yes ERR4097245
-        """
-```
-            
-</details>
-
-
-Start the pipeline with
-
-```
-snakemake --cores 1
-```
-
-We are running snakemake locally, and so only use one core.
-
-```
-Building DAG of jobs...
-Nothing to be done (all requested files are present and up to date).
-```
-
-Since we just downloaded ERR4097245 as an example earlier, Snakemake recognizes the existence of the final files and so did not run.
-Note: If you want to re download ERR4097245 using Snakemake remove `ERR4097245/ERR4097245.sra`.
-
-
-Let's change the `Snakefile` to download the next SRA sample ERR4097111.
-
-
-```
-rule all:
-    input:
-        "ERR4097111/ERR4097111.sra"
-            
-rule download:
-    output:
-        "ERR4097111/ERR4097111.sra" 
-    shell:
-        """
-        prefetch -f yes ERR4097111
-        """
-```
-
-![Missing prefetch](img/snakemake_error1.png?raw=true "First error")
-
-Snakemake gives an error as it does not recognize the command *prefetch*.
-
-You might have noticed that we are no longer in the `sra-tools` environment and *sra-tools* is not installed here.
-One option is to install *sra-tool* on to the `snakemake` environment.
-However, we want to maintain a clean base environment and avoid program conflict causes by different packages.
-To solve this, we will tell Snakemake to build a new conda environment for the rule instead.
-
-
-The yaml file contains information of the programs.
-You can use the pre-made `envs/sra-tools.yaml` or create one from scratch.
-
-```
-name: sra-tools
-channels:
- - bioconda
-dependencies:
- - sra-tools=2.11.0
-```
-
-Update rule `download` with the line `conda: "envs/sra-tools.yaml"`.
-
-
-```
-rule download:
-    output:
-        "ERR4097111/ERR4097111.sra" 
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        prefetch -f yes ERR4097111
-        """
-```
-
-Save your `Snakefile` and include `--use-conda` when execute.
-
-```
-snakemake --cores 1 --use-conda
-```
-
-Snakemake will download and build the conda environment the first time it runs.  
-
-![Snakemake conda](img/snakemake_st.png?raw=true "Build conda env for first run")
-
-> Congratulation, you have successfully in using Snakemake to downloaded the first sample.
-
-
-#### 1.4.4 Extract forward and reverse reads
-
-Same as the second step of the workflow, we want to split the `sra` file into forward and reverse files.
-Create a new rule called `split_raw`, which use `fasterq-dump`.
-
-
-```
-rule split_raw:
-    input:
-        "ERR4097111/ERR4097111.sra"
-    output:
-        multiext("ERR4097111", "_1.fastq", "_2.fastq")
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        fasterq-dump --split-files ERR4097111
-        """
-```
-
--   `input:` Output from rule `download`. 
--   `multiext()` tells the program that we are expecting files with multiple extensions.
-
-
-Update rule `all` as we want new output as the final result.
-
-
-<details>
-  <summary>Snakefile</summary>
-  
-```
-rule all:
-    input:
-        "ERR4097111/ERR4097111.sra",
-        multiext("ERR4097111", "_1.fastq", "_2.fastq")
-
-rule download:
-    output:
-        "ERR4097111/ERR4097111.sra"
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        prefetch -f yes ERR4097111
-        """
-
-rule split_raw:
-    input:
-        "ERR4097111/ERR4097111.sra"
-    output:
-        multiext("ERR4097111", "_1.fastq", "_2.fastq")
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        fasterq-dump --split-files {input}
-        """
-```
-            
-</details>
-
-
-*Note:* It is possible to remove line `"ERR4097111/ERR4097111.sra"` from rule `all` and does not impact the pipeline at all.
-Snakemake looks at the final output and works backward to identify the input required for each rule.
-As ***ERR4097111/ERR4097111.sra*** is the input of `split_raw`, Snakemake will trigger rule `download` to create this input.
-
-#### 1.4.5 Compress files
-
-Use these points to make a rule called `compress`.
-
-- `input:` Use the output from `split_raw`.
-- `output:` file ends with *.gz*
-- `shell:` Compress with `gzip <file1> <file2>`
-- Update rule `all` with the final outcome.
-
-Check here to see the final `Snakefile` should look like.
-
-<details>
-  <summary>Snakefile</summary>
-  
-```
-rule all:
-    input:
-        multiext("ERR4097111", "_1.fastq.gz", "_2.fastq.gz")
-
-rule download:
-    output:
-        "ERR4097111/ERR4097111.sra"
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        prefetch -f yes ERR4097111
-        """
-
-rule split_raw:
-    input:
-        "ERR4097111/ERR4097111.sra"
-    output:
-        multiext("ERR4097111", "_1.fastq", "_2.fastq")
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        fasterq-dump --split-files {input}
-        """
-
-rule compress:
-    input:
-        multiext("ERR4097111", "_1.fastq", "_2.fastq")
-    output:
-        multiext("ERR4097111", "_1.fastq.gz", "_2.fastq.gz")
-    shell:
-        """
-        gzip {input}
-        """
-       
-```
-</details>
-
-Run Snakemake to get the compressed files.
-
-
-#### 1.4.6 Update Snakemake to process multiple files
-
-Snakemake is very efficient in processing multiple files. 
-We need to to rewrite rules using wildcards.
-The SRA of interest is provided as a python list.
-
-```
-SRA = ["ERR4097111", "ERR4097109"]
-```
-
-In all the rules, the SRA's name is replaced with `{sra}` variable.
-
-```
-rule download:
-    output:
-        "{sra}/{sra}.sra"
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        prefetch -f yes {wildcards.sra} 
-        """
-```
-
-To use the variables in the command, we need to specify that we are running `wildcards.sra`.
-
-For rule `all`, we want the final output to be `{sra}_1.fastq.gz` and `{sra}_2.fastq.gz`.
-Here we need to specify that the value of `{sra}` comes from the SRA list from above.
-
-`expand(["{sra}_1.fastq.gz", "{sra}_2.fastq.gz"], sra = SRA)`
-
-This means, we are looking for 4 files as the final outcome:
-
--   ERR4097111_1.fastq.gz
--   ERR4097111_2.fastq.gz
--   ERR4097109_1.fastq.gz
--   ERR4097109_2.fastq.gz
-
-
-<details>
-  <summary>Snakefile</summary>
-
-```
-SRA = ["ERR4097111", "ERR4097109"]
-
-rule all:
-    input:
-        expand(["{sra}_1.fastq.gz", "{sra}_2.fastq.gz"], sra = SRA)
-
-
-rule download:
-    output:
-        temp("{sra}/{sra}.sra")
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        prefetch -f yes {wildcards.sra} 
-        """
-
-rule split_raw:
-    input:
-        "{sra}/{sra}.sra"
-    output:
-        multiext("{sra}", "_1.fastq", "_2.fastq")
-    conda:
-        "envs/sra-tools.yaml"
-    shell:
-        """
-        fasterq-dump --split-files {input}
-        """
-
-rule compress:
-    input:
-        multiext("{sra}", "_1.fastq", "_2.fastq")
-    output:
-        multiext("{sra}", "_1.fastq.gz", "_2.fastq.gz")
-    shell:
-        """
-        gzip {input}
-        """
-```
-
-</details>
-
-Run Snakemake with two cores.
-Use the command `-r` to see why the rule was triggered and `-p` to show running commands.
-
-```
-snakemake --cores 2 --use-conda -r -p
-```
-
-Snakemake downloads and processes two SRA files at the same time.
-Number of parallel process depends on the number of cores used.
-To avoid stressing out the NCBI server, reduce the number of cores.
-Also, multiple cores will consume more computational power and huge amount of hard disk.
-
-> Congratulation, you used Snakemake to download and process multiple files.
-
-Exercise: Try to download the other SRAs for analysis
-
-
-
-## 2. Metagenomic workflow
-
-
-
-
-## 3 Taxonomic typing of raw data
-
-We want to know what is present in the raw reads.
-
-```
-mkdir bgi_pipeline
-
-cd bgi_pipeline
-```
-
-What is the different between kraken2 and metaphlan3?
-  [Short tutorial comparing Kraken2 vs metaplan3](mini_taxo/taxo_compare.md).
-
-Let's create a new project to analyze the downloaded and processed SRA files.
-
-```
-# Create a new folder
-mkdir bgi_pipeline
-
-# Move processed SRA files to the new folder
-mv ERR*.fastq.gz SRA_pipeline
-
-# Navigate to the new directory
-cd bgi_pipeline
-
-```
-
-Create a tab separated sample file called `sample.tsv`.
-This file contains *ID* and the paths for *forward* and *reverse* reads of the samples we want to process.
-
-*How to create this file*
-
-|ID        |r1                         |r2                         |
-|----------|---------------------------|---------------------------|
-| D6300-27 | ERR4097245.sra_1.fastq.gz | ERR4097245.sra_2.fastq.gz |
-| D6300-28 | ERR4097111.sra_1.fastq.gz | ERR4097111.sra_2.fastq.gz |
-| D6300-29 | ERR4097243.sra_1.fastq.gz | ERR4097243.sra_2.fastq.gz |
-| D6300-30 | ERR4097237.sra_1.fastq.gz | ERR4097237.sra_2.fastq.gz |
-| D6300-31 | ERR4097238.sra_1.fastq.gz | ERR4097238.sra_2.fastq.gz |
-| D6300-32 | ERR4097276.sra_1.fastq.gz | ERR4097276.sra_2.fastq.gz |
-
-Create a brand new `Snakefile` in the `SRA_pipeline` directory.
-
-Create rule to run bracken on the raw reads.
-First we need python packages to handle the `sample.tsv` file.
-The following functions parse the file and extract the forward and reverse reads of the sample.
-
-
-```
-import pandas as pd
-
-def parse_samples(samples_tsv):
-    # Load in tab separate file
-    # Remove samples with incomplete fields
-    # Set ID as the index
-    return pd.read_csv(samples_tsv, sep ='\t').dropna().set_index("ID", drop=False)
-
-def get_files(sample_df, wildcards, col):
-    # Return forward and reverse reads based on the sample's name
-    return sample_df.loc[wildcards.sample, [col]]
-
-_samples = parse_samples("samples.tsv")
-
-```
 
 
 

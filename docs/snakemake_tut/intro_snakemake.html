@@ -12,7 +12,7 @@
 <meta name="author" content="Ngoc Giang Le" />
 
 
-<title>Intorduction to Snakemake</title>
+<title>Introduction to Snakemake</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1455,7 +1455,7 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">Intorduction to Snakemake</h1>
+<h1 class="title toc-ignore">Introduction to Snakemake</h1>
 <h4 class="author">Ngoc Giang Le</h4>
 
 </div>
@@ -1466,7 +1466,7 @@ body {
 text-align: justify}
 </style>
 <div id="introduction" class="section level2">
-<h2>1.1 Introduction</h2>
+<h2>1. Introduction</h2>
 <p>Snakemake is a workflow management system used in bioinformatics and
 data science. It allows users to write complex workflow in a simple way
 using syntax which specifies input, output, and commands to be executed.
@@ -1477,7 +1477,7 @@ makes it easy to scale up the analysis and/or use in the
 high-performance computing environments.</p>
 </div>
 <div id="setup-snakemake-environments" class="section level2">
-<h2>1.2 Setup Snakemake environments</h2>
+<h2>2. Setup Snakemake environments</h2>
 <p><em>Mamba</em> is the preferred way to install Snakemake as it’s
 solver is much faster than <em>conda</em>.</p>
 <pre><code># Install snakemake via mamba
@@ -1494,7 +1494,7 @@ mamba install -c conda-forge -c bioconda snakemake=7.8.5
 snakemake --version</code></pre>
 </div>
 <div id="snakemake-rules" class="section level2">
-<h2>1.3 Snakemake rules</h2>
+<h2>3. Snakemake rules</h2>
 <p>Open your favorite editor and create a new file called
 <code>Snakefile</code>.</p>
 <p>Structure of a simplified Snakemake rule is as follow:</p>
@@ -1509,7 +1509,10 @@ snakemake --version</code></pre>
         &quot;&quot;&quot;
 </code></pre>
 <div id="download-rule" class="section level3">
-<h3>1.3.1 Download rule</h3>
+<h3>3.1. Download rule</h3>
+<p>Create a new directory for this project</p>
+<pre><code>mkdir bgi_raws
+cd bgi_raws</code></pre>
 <p>We will create a rule called <code>download</code> and use it to get
 ERR4097207 files.</p>
 <pre><code>rule download:
@@ -1524,8 +1527,7 @@ ERR4097207 files.</p>
         &quot;&quot;&quot;</code></pre>
 <p><a href="https://gianglen.github.io/Zymo-Mock-sequencing/bgi_pipe/ENA_vs_SRA.html">Comparison
 between Kingfisher and SRA-tools.</a><br />
-<a href="#alternative-method-to-download-ena">Alternative way to
-download from ENA.</a></p>
+Scroll down to see alternative way to download from ENA.</p>
 <p>We also need to include a rule to specify the <em>final</em> outcome.
 It is possible to list the two files similar to the input above.
 However, we will use the function <strong><em>multiext(“Common_name”,
@@ -1590,7 +1592,7 @@ downloaded the first sample.</p>
 </blockquote>
 </div>
 <div id="download-multiple-files" class="section level3">
-<h3>1.3.2 Download multiple files</h3>
+<h3>3.2. Download multiple files</h3>
 <p>Snakemake is very efficient in processing multiple files. We need to
 to rewrite rules using wildcards. The SRA of interest is provided as a
 python list.</p>
@@ -1666,7 +1668,7 @@ number of input <em>cores</em> or increase the number of
 power and huge amount of hard disk.</p>
 </div>
 <div id="download-from-input-file" class="section level3">
-<h3>1.3.3 Download from input file</h3>
+<h3>3.3. Download from input file</h3>
 <p>We will update the <em>Snakemake</em> file further to download SRA
 from a file with accessions. This is the content of the file
 <code>accessions.txt</code>:</p>
@@ -1718,7 +1720,7 @@ rule download:
 </details>
 </div>
 <div id="create-input-file-for-analysis" class="section level3">
-<h3>1.3.4 Create input file for analysis</h3>
+<h3>3.4. Create input file for analysis</h3>
 <p>Our next aim is to create a tab separated file called
 <code>sample.tsv</code> with the following structure for later analysis.
 This file contains <em>id</em> and the path for <em>forward</em> and
@@ -1780,7 +1782,7 @@ impact.</p>
 <pre><code>snakemake --cores 6 --use-conda -r -p</code></pre>
 </div>
 <div id="combine-results" class="section level3">
-<h3>1.3.5 Combine results</h3>
+<h3>3.5. Combine results</h3>
 <p>We need to group all the text files together into one file called
 <code>sample.tsv</code>.</p>
 <pre><code>rule final_samples:
@@ -1790,7 +1792,8 @@ impact.</p>
         &quot;sample.tsv&quot;
     shell:
         &quot;&quot;&quot;
-        cat {input} &gt; {output}
+        echo -e &quot;id\tread1\tread2&quot; &gt; {output}
+        cat {input} &gt;&gt; {output}
         &quot;&quot;&quot;</code></pre>
 <p>The <code>expand</code> function in the input allows to combine all
 <em>00_raws/{sample},txt</em> together.</p>
@@ -1804,6 +1807,55 @@ because, Snakemake looks at the final output and works backward to
 identify the input required for each rule. In the <em>final_samples</em>
 rule, the <em>sample</em> is already defined and so Snakemake can still
 trigger the required rules.</p>
+<details>
+<summary>
+Snakefile
+</summary>
+<pre><code>import pandas as pd
+
+def parse_samples(accession_list):
+    return pd.read_csv(accession_list, sep =&#39;\t&#39;).dropna().set_index(&quot;accession&quot;, drop=False)
+
+_samples = parse_samples(&quot;accession.txt&quot;)
+
+rule all:
+    input:
+        &quot;sample.tsv&quot;
+
+rule download:
+    output:
+        multiext(&quot;{sample}&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    threads: 3
+    conda:
+        &quot;envs/kingfisher.yaml&quot;
+    shell:
+        &quot;&quot;&quot;
+        kingfisher get -r {wildcards.sample} -f fastq.gz -m ena-ftp --check-md5sums --download-threads {threads}
+        &quot;&quot;&quot;
+
+rule pipe_samples:
+    input:
+        multiext(&quot;{sample}&quot;, &quot;_1.fastq.gz&quot;, &quot;_2.fastq.gz&quot;)
+    output:
+        temp(&quot;00_raws/{sample}.txt&quot;)
+    shell:
+        &quot;&quot;&quot;
+        echo {wildcards.sample} $(realpath {input}) | sed &#39;s/ /\t/g&#39; &gt; {output}
+        &quot;&quot;&quot;
+
+rule final_samples:
+    input:
+        expand(&quot;00_raws/{sample}.txt&quot;, sample = _samples.index)
+    output:
+        &quot;sample.tsv&quot;
+    shell:
+        &quot;&quot;&quot;
+        echo -e &quot;id\tread1\tread2&quot; &gt; {output}
+        cat {input} &gt;&gt; {output}
+        &quot;&quot;&quot;</code></pre>
+</details>
 <p>Run Snakemake</p>
 <pre><code>snakemake --cores 6 --use-conda -r -p</code></pre>
 <blockquote>
@@ -1814,9 +1866,76 @@ files.</p>
 is the full accessions list from the same project.</p>
 </div>
 </div>
-<div id="alternative-download-method-from-ena" class="section level2">
-<h2>Alternative download method from ENA</h2>
-<p>Coming soon</p>
+<div id="conclusion" class="section level2">
+<h2>4. Conclusion</h2>
+<p>Here we looked at:<br />
+- Creating environment for Snakemake<br />
+- Basic Snakemake rule<br />
+- Chain rules together<br />
+- Use conda for the rule<br />
+- Process multiple files</p>
+</div>
+<div id="alternative-download-method" class="section level2">
+<h2>Alternative download method</h2>
+<p>Visit ENA main web browser and search for PRJEB38036. Download the
+metadata file and modify it so that it contains the accession
+(<em>acc</em>) and ftp paths (<em>r1</em> and <em>r2</em>). Save the
+file as <code>sra_download</code>.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="42%" />
+<col width="28%" />
+<col width="28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>acc</th>
+<th>r1</th>
+<th>r2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ERR4097111</td>
+<td>ftp.sra.ebi.ac.uk/vol1/run/ERR409/ERR4097111/D6300_28.1.rmhost.fq.gz</td>
+<td>ftp.sra.ebi.ac.uk/vol1/run/ERR409/ERR4097111/D6300_28.2.rmhost.fq.gz</td>
+</tr>
+<tr class="even">
+<td>ERR4097171</td>
+<td>ftp.sra.ebi.ac.uk/vol1/run/ERR409/ERR4097171/D6300_4_24.1.rmhost.fq.gz</td>
+<td>ftp.sra.ebi.ac.uk/vol1/run/ERR409/ERR4097171/D6300_4_24.2.rmhost.fq.gz</td>
+</tr>
+</tbody>
+</table>
+<p>The Snakefile</p>
+<pre><code>import pandas as pd
+
+def parse_samples(samples_tsv):
+    return pd.read_csv(samples_tsv, sep =&#39;\t&#39;).dropna().set_index(&quot;acc&quot;, drop=False)
+
+def get_files(sample_df, wildcards, col):
+    return sample_df.loc[wildcards.sample, [col]]
+
+_samples = parse_samples(&quot;sra_download&quot;)
+
+
+rule all:
+    input:
+        expand(&quot;{sample}_1.fq.gz&quot;, sample = _samples.index),
+        expand(&quot;{sample}_2.fq.gz&quot;, sample = _samples.index)
+
+rule sra_download:
+    params:
+        r1 = lambda wildcards: get_files(_samples, wildcards, &#39;r1&#39;)[0],
+        r2 = lambda wildcards: get_files(_samples, wildcards, &#39;r2&#39;)[0],
+    output:
+        r1 = &quot;{sample}_1.fq.gz&quot;,
+        r2 = &quot;{sample}_2.fq.gz&quot;,
+    shell:
+        &quot;&quot;&quot;
+        wget -O {output.r1} {params.r1}
+        wget -O {output.r2} {params.r2}
+        &quot;&quot;&quot;</code></pre>
 </div>
 
 
