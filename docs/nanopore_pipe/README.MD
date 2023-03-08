@@ -87,3 +87,4 @@ In conclusion, processing metagenomic data from nanopore sequencing involves sev
 ## Inspired sites
 https://github.com/adlape95/Assembly-methods-nanopore
 https://github.com/harvardinformatics/nanopore-assembly/blob/main/Nanopore_quickstart.md
+https://github.com/wdecoster/NanoPlot
