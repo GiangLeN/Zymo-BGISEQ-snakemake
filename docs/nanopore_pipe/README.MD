@@ -82,3 +82,8 @@ The final step in processing metagenomic data from nanopore sequencing is functi
 Several tools are available for functional annotation, such as Prokka, RAST, and MG-RAST. These tools use reference databases to annotate the genes and functions encoded in the genomes.
 
 In conclusion, processing metagenomic data from nanopore sequencing involves several steps, including quality control, assembly, taxonomic classification, and functional annotation. Each of these steps is important to ensure that the data generated is of high quality and can be used to identify the organisms present in the sample and the functions and pathways encoded in their genomes.
+
+
+## Inspired sites
+https://github.com/adlape95/Assembly-methods-nanopore
+https://github.com/harvardinformatics/nanopore-assembly/blob/main/Nanopore_quickstart.md
